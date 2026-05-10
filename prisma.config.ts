@@ -7,7 +7,7 @@ export default defineConfig({
     path: "prisma/migrations",
     seed: "tsx prisma/seed.ts",
   },
-  adapter: {
-    url: process.env["DATABASE_URL"],
+  datasource: {
+    url: process.env["DATABASE_URL"] ?? "file:./dev.db",
   },
 });

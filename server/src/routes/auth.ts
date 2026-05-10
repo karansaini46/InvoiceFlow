@@ -4,6 +4,7 @@ import { Router } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z } from "zod";
 
+import { getJwtSecret } from "../config/jwt";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
 
@@ -38,16 +39,6 @@ type TokenUser = {
 
 type AuthUser = TokenUser & {
   name: string;
-};
-
-const getJwtSecret = (name: "JWT_SECRET" | "JWT_REFRESH_SECRET") => {
-  const secret = process.env[name];
-
-  if (!secret) {
-    throw new Error(`${name} is required.`);
-  }
-
-  return secret;
 };
 
 const toTokenUser = (user: AuthUser): TokenUser => ({
