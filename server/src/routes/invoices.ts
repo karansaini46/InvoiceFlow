@@ -1,11 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
 
-import { authMiddleware } from "../middleware/authMiddleware";
+import { prisma } from "../lib/prisma";
+import { generateInvoicePDF, getInvoicePdfFilename } from "../services/pdfService";
 import { HttpError } from "../utils/httpError";
-
-const prisma = new PrismaClient();
 
 // Zod schemas
 const lineItemSchema = z.object({
@@ -41,6 +39,23 @@ const updateInvoiceSchema = z.object({
 const updateStatusSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "PAID", "OVERDUE"]),
 });
+
+const getRouteId = (req: Request) => {
+  const id = req.params.id;
+
+  if (Array.isArray(id)) {
+    return id[0];
+  }
+
+  if (!id) {
+    throw new HttpError(400, "Invoice id is required");
+  }
+
+  return id;
+};
+
+const getZodMessage = (error: z.ZodError) =>
+  error.issues[0]?.message ?? "Validation failed";
 
 // Helper function to generate invoice number
 const generateInvoiceNumber = async (userId: string): Promise<string> => {
@@ -131,7 +146,7 @@ export const createInvoice = async (req: Request, res: Response, next: NextFunct
     res.status(201).json(invoice);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      next(new HttpError(400, error.errors[0].message));
+      next(new HttpError(400, getZodMessage(error)));
     } else {
       next(error);
     }
@@ -142,7 +157,7 @@ export const createInvoice = async (req: Request, res: Response, next: NextFunct
 export const getInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { id } = req.params;
+    const id = getRouteId(req);
 
     const invoice = await prisma.invoice.findFirst({
       where: { id, userId },
@@ -159,11 +174,27 @@ export const getInvoice = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+// GET /invoices/:id/pdf - Download invoice PDF
+export const downloadInvoicePdf = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = getRouteId(req);
+    const filename = await getInvoicePdfFilename(id, userId);
+    const pdfBuffer = await generateInvoicePDF(id, userId);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // PATCH /invoices/:id - Update invoice
 export const updateInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { id } = req.params;
+    const id = getRouteId(req);
     const validatedData = updateInvoiceSchema.parse(req.body);
 
     // Check if invoice exists and belongs to user
@@ -242,7 +273,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
     res.json(updatedInvoice);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      next(new HttpError(400, error.errors[0].message));
+      next(new HttpError(400, getZodMessage(error)));
     } else {
       next(error);
     }
@@ -253,7 +284,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
 export const deleteInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { id } = req.params;
+    const id = getRouteId(req);
 
     // Check if invoice exists and belongs to user
     const existingInvoice = await prisma.invoice.findFirst({
@@ -279,7 +310,7 @@ export const deleteInvoice = async (req: Request, res: Response, next: NextFunct
 export const updateInvoiceStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { id } = req.params;
+    const id = getRouteId(req);
     const { status } = updateStatusSchema.parse(req.body);
 
     // Check if invoice exists and belongs to user
@@ -300,7 +331,7 @@ export const updateInvoiceStatus = async (req: Request, res: Response, next: Nex
     res.json(updatedInvoice);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      next(new HttpError(400, error.errors[0].message));
+      next(new HttpError(400, getZodMessage(error)));
     } else {
       next(error);
     }

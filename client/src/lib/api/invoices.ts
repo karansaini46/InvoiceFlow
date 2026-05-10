@@ -30,4 +30,11 @@ export const invoicesApi = {
     const response = await api.patch(`/invoices/${id}/status`, { status });
     return response.data;
   },
+
+  downloadPdf: async (id: string): Promise<Blob> => {
+    const response = await api.get(`/invoices/${id}/pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
 };
