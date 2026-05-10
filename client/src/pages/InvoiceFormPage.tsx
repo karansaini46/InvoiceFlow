@@ -158,10 +158,10 @@ export function InvoiceFormPage() {
 
         if (isEditing && id) {
           await invoicesApi.update(id, data as UpdateInvoiceData);
-          await invoicesApi.updateStatus(id, "SENT");
+          await invoicesApi.send(id);
         } else {
           const invoice = await invoicesApi.create(data as CreateInvoiceData);
-          await invoicesApi.updateStatus(invoice.id, "SENT");
+          await invoicesApi.send(invoice.id);
         }
         navigate("/invoices");
       } catch (err: any) {

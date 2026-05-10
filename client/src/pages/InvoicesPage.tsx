@@ -3,12 +3,15 @@ import { Link } from "react-router-dom";
 import { invoicesApi } from "@/lib/api/invoices";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
+import { Toast } from "@/components/Toast";
 import { Page } from "@/pages/Page";
 import type { Invoice } from "@/types/invoice";
 
 export function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +58,21 @@ export function InvoicesPage() {
     }
   };
 
+  const handleSendInvoice = async (invoice: Invoice) => {
+    try {
+      setSendingInvoiceId(invoice.id);
+      const updatedInvoice = await invoicesApi.send(invoice.id);
+      setInvoices(invoices.map((item) => (item.id === invoice.id ? updatedInvoice : item)));
+      setToast(`Invoice sent to ${invoice.clientEmail}`);
+      setError(null);
+    } catch (err) {
+      setError("Failed to send invoice");
+      console.error("Error sending invoice:", err);
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -78,6 +96,8 @@ export function InvoicesPage() {
 
   return (
     <Page title="Invoices" description="Review and manage invoice records.">
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
       <div className="mb-6">
         <Link to="/invoices/new">
           <Button>Create New Invoice</Button>
@@ -161,10 +181,11 @@ export function InvoicesPage() {
                     </button>
                     {invoice.status === "DRAFT" && (
                       <button
-                        onClick={() => handleStatusUpdate(invoice.id, "SENT")}
-                        className="text-green-600 hover:text-green-900"
+                        onClick={() => handleSendInvoice(invoice)}
+                        disabled={sendingInvoiceId === invoice.id}
+                        className="text-green-600 hover:text-green-900 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Send
+                        {sendingInvoiceId === invoice.id ? "Sending..." : "Send"}
                       </button>
                     )}
                     {invoice.status === "SENT" && (

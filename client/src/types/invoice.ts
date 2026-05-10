@@ -1,4 +1,4 @@
-import type { InvoiceStatus } from "@prisma/client";
+export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE";
 
 export interface LineItem {
   id: string;

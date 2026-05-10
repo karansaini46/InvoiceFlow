@@ -1,10 +1,10 @@
-import type { InvoiceStatus } from "@prisma/client";
+import type { InvoiceStatus } from "@/types/invoice";
 
 interface StatusBadgeProps {
   status: InvoiceStatus;
 }
 
-const statusConfig = {
+const statusConfig: Record<InvoiceStatus, { label: string; className: string }> = {
   DRAFT: {
     label: "Draft",
     className: "bg-gray-100 text-gray-800 border-gray-200",
