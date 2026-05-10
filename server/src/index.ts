@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
+import { invoiceRouter } from "./routes/invoiceRouter";
 
 dotenv.config({ quiet: true });
 
@@ -25,6 +26,7 @@ app.use(express.json());
 
 app.use("/auth", authRouter);
 app.use("/health", healthRouter);
+app.use("/invoices", invoiceRouter);
 
 app.use(errorHandler);
 
