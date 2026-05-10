@@ -21,13 +21,11 @@ const getBrowser = () => {
   return browserPromise;
 };
 
-const getInvoiceForPdf = async (invoiceId: string) =>
+const getInvoiceForRender = async (invoiceId: string) =>
   prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
-      lineItems: {
-        orderBy: { id: "asc" },
-      },
+      lineItems: { orderBy: { id: "asc" } },
       user: {
         select: {
           email: true,
@@ -37,9 +35,9 @@ const getInvoiceForPdf = async (invoiceId: string) =>
     },
   });
 
-type InvoiceForPdf = NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>;
+type InvoiceForRender = NonNullable<Awaited<ReturnType<typeof getInvoiceForRender>>>;
 
-const escapeHtml = (value: string | number | null | undefined) =>
+export const escapeHtml = (value: string | number | null | undefined) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -47,7 +45,7 @@ const escapeHtml = (value: string | number | null | undefined) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const formatDate = (date: Date) =>
+export const formatInvoiceDate = (date: Date) =>
   new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "short",
@@ -55,7 +53,7 @@ const formatDate = (date: Date) =>
     timeZone: "UTC",
   }).format(date);
 
-const formatCurrency = (amount: number, currency: string) =>
+export const formatInvoiceCurrency = (amount: number, currency: string) =>
   new Intl.NumberFormat("en-US", {
     currency,
     style: "currency",
@@ -67,7 +65,7 @@ const renderNotes = (notes: string) =>
     .map((line) => escapeHtml(line))
     .join("<br>");
 
-const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
+const renderInvoiceHtml = (invoice: InvoiceForRender) => {
   const currency = invoice.currency || "USD";
   const lineItems = invoice.lineItems
     .map(
@@ -75,8 +73,8 @@ const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
         <tr>
           <td class="description">${escapeHtml(item.description)}</td>
           <td>${escapeHtml(item.quantity)}</td>
-          <td>${escapeHtml(formatCurrency(item.unitPrice, currency))}</td>
-          <td>${escapeHtml(formatCurrency(item.amount, currency))}</td>
+          <td>${escapeHtml(formatInvoiceCurrency(item.unitPrice, currency))}</td>
+          <td>${escapeHtml(formatInvoiceCurrency(item.amount, currency))}</td>
         </tr>
       `,
     )
@@ -318,11 +316,11 @@ const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
           <div class="dates">
             <div class="date-row">
               <span class="muted">Issue date</span>
-              <strong>${escapeHtml(formatDate(invoice.issueDate))}</strong>
+              <strong>${escapeHtml(formatInvoiceDate(invoice.issueDate))}</strong>
             </div>
             <div class="date-row">
               <span class="muted">Due date</span>
-              <strong>${escapeHtml(formatDate(invoice.dueDate))}</strong>
+              <strong>${escapeHtml(formatInvoiceDate(invoice.dueDate))}</strong>
             </div>
             <div class="date-row">
               <span class="muted">Status</span>
@@ -347,15 +345,15 @@ const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
           <div class="totals">
             <div class="total-row">
               <span>Subtotal</span>
-              <strong>${escapeHtml(formatCurrency(invoice.subtotal, currency))}</strong>
+              <strong>${escapeHtml(formatInvoiceCurrency(invoice.subtotal, currency))}</strong>
             </div>
             <div class="total-row">
               <span>Tax (${escapeHtml(invoice.taxRate)}%)</span>
-              <strong>${escapeHtml(formatCurrency(invoice.taxAmount, currency))}</strong>
+              <strong>${escapeHtml(formatInvoiceCurrency(invoice.taxAmount, currency))}</strong>
             </div>
             <div class="total-row grand-total">
               <span>Total</span>
-              <span>${escapeHtml(formatCurrency(invoice.total, currency))}</span>
+              <span>${escapeHtml(formatInvoiceCurrency(invoice.total, currency))}</span>
             </div>
           </div>
         </section>
@@ -363,7 +361,7 @@ const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
         <footer class="footer">
           <div class="footer-box">
             <div class="label">Payment terms</div>
-            <div>Payment is due by ${escapeHtml(formatDate(invoice.dueDate))}.</div>
+            <div>Payment is due by ${escapeHtml(formatInvoiceDate(invoice.dueDate))}.</div>
           </div>
           <div class="footer-box">
             <div class="label">Notes</div>
@@ -374,6 +372,16 @@ const renderInvoiceHtml = (invoice: InvoiceForPdf) => {
     </main>
   </body>
 </html>`;
+};
+
+export const getPublicInvoiceHtml = async (invoiceId: string) => {
+  const invoice = await getInvoiceForRender(invoiceId);
+
+  if (!invoice) {
+    throw new HttpError(404, "Invoice not found");
+  }
+
+  return renderInvoiceHtml(invoice);
 };
 
 export const getInvoicePdfFilename = async (invoiceId: string, userId: string) => {
@@ -399,7 +407,7 @@ export const getInvoicePdfFilename = async (invoiceId: string, userId: string) =
 };
 
 export const generateInvoicePDF = async (invoiceId: string, userId: string) => {
-  const invoice = await getInvoiceForPdf(invoiceId);
+  const invoice = await getInvoiceForRender(invoiceId);
 
   if (!invoice) {
     throw new HttpError(404, "Invoice not found");

@@ -2,7 +2,12 @@ import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 
 import { prisma } from "../lib/prisma";
-import { generateInvoicePDF, getInvoicePdfFilename } from "../services/pdfService";
+import { sendInvoiceEmail } from "../services/emailService";
+import {
+  generateInvoicePDF,
+  getInvoicePdfFilename,
+  getPublicInvoiceHtml,
+} from "../services/pdfService";
 import { HttpError } from "../utils/httpError";
 
 // Zod schemas
@@ -185,6 +190,43 @@ export const downloadInvoicePdf = async (req: Request, res: Response, next: Next
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /invoices/:id/view - Public invoice view
+export const viewPublicInvoice = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = getRouteId(req);
+    const html = await getPublicInvoiceHtml(id);
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    );
+    res.send(html);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /invoices/:id/send - Email invoice to client
+export const sendInvoice = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = getRouteId(req);
+
+    await sendInvoiceEmail(id, userId);
+
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id },
+      data: { status: "SENT" },
+      include: { lineItems: true },
+    });
+
+    res.json(updatedInvoice);
   } catch (error) {
     next(error);
   }

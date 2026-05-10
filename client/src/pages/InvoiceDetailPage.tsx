@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Toast } from "@/components/Toast";
 import { invoicesApi } from "@/lib/api/invoices";
 import { Page } from "@/pages/Page";
 import type { Invoice } from "@/types/invoice";
@@ -11,6 +12,8 @@ export function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +75,25 @@ export function InvoiceDetailPage() {
     }
   };
 
+  const handleSendInvoice = async () => {
+    if (!invoice) {
+      return;
+    }
+
+    try {
+      setSendLoading(true);
+      const updatedInvoice = await invoicesApi.send(invoice.id);
+      setInvoice(updatedInvoice);
+      setToast(`Invoice sent to ${invoice.clientEmail}`);
+      setError(null);
+    } catch (err) {
+      setError("Failed to send invoice");
+      console.error("Error sending invoice:", err);
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Page title="Invoice Detail" description="View invoice status and line items.">
@@ -97,6 +119,8 @@ export function InvoiceDetailPage() {
 
   return (
     <Page title={invoice.number} description="View invoice status and line items.">
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
           {error}
@@ -111,6 +135,11 @@ export function InvoiceDetailPage() {
           <Link to={`/invoices/${invoice.id}/edit`}>
             <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">Edit Invoice</Button>
           </Link>
+          {invoice.status === "DRAFT" && (
+            <Button onClick={handleSendInvoice} disabled={sendLoading}>
+              {sendLoading ? "Sending..." : "Send Invoice"}
+            </Button>
+          )}
           <Button onClick={handleDownloadPdf} disabled={downloadLoading}>
             {downloadLoading ? "Downloading..." : "Download PDF"}
           </Button>

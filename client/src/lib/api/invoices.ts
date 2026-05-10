@@ -31,6 +31,11 @@ export const invoicesApi = {
     return response.data;
   },
 
+  send: async (id: string): Promise<Invoice> => {
+    const response = await api.post(`/invoices/${id}/send`);
+    return response.data;
+  },
+
   downloadPdf: async (id: string): Promise<Blob> => {
     const response = await api.get(`/invoices/${id}/pdf`, {
       responseType: "blob",

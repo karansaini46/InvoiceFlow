@@ -5,12 +5,17 @@ import {
   createInvoice,
   getInvoice,
   downloadInvoicePdf,
+  viewPublicInvoice,
+  sendInvoice,
   updateInvoice,
   deleteInvoice,
   updateInvoiceStatus,
 } from "./invoices";
 
 const router = Router();
+
+// GET /invoices/:id/view - Public invoice view
+router.get("/:id/view", viewPublicInvoice);
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -23,6 +28,9 @@ router.post("/", createInvoice);
 
 // GET /invoices/:id/pdf - Download invoice PDF
 router.get("/:id/pdf", downloadInvoicePdf);
+
+// POST /invoices/:id/send - Email invoice to client
+router.post("/:id/send", sendInvoice);
 
 // GET /invoices/:id - Get single invoice
 router.get("/:id", getInvoice);

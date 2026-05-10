@@ -18,6 +18,10 @@
     "tsx": "^4.21.0"
   },
   "pnpm": {
+    "overrides": {
+      "@types/react": "18.3.28",
+      "@types/react-dom": "18.3.7"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "puppeteer"
