@@ -1,11 +1,12 @@
-import { Button } from "@/components/Button";
+import { ReactNode } from "react";
 
 type PageProps = {
   title: string;
   description: string;
+  children?: ReactNode;
 };
 
-export function Page({ title, description }: PageProps) {
+export function Page({ title, description, children }: PageProps) {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
       <section className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -20,7 +21,7 @@ export function Page({ title, description }: PageProps) {
             {description}
           </p>
         </div>
-        <Button>Tailwind test button</Button>
+        {children}
       </section>
     </main>
   );

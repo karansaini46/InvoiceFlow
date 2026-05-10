@@ -3,6 +3,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicRoute } from "@/components/PublicRoute";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { InvoiceDetailPage } from "@/pages/InvoiceDetailPage";
+import { InvoiceFormPage } from "@/pages/InvoiceFormPage";
 import { InvoicesPage } from "@/pages/InvoicesPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -40,6 +41,22 @@ export function App() {
         element={
           <ProtectedRoute>
             <InvoicesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoices/new"
+        element={
+          <ProtectedRoute>
+            <InvoiceFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoices/:id/edit"
+        element={
+          <ProtectedRoute>
+            <InvoiceFormPage />
           </ProtectedRoute>
         }
       />
