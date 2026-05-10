@@ -1,22 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
+import { getJwtSecret } from "../config/jwt";
 import { HttpError } from "../utils/httpError";
 
 type AccessTokenPayload = {
   id: string;
   email: string;
   plan: string;
-};
-
-const getJwtSecret = () => {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET is required.");
-  }
-
-  return secret;
 };
 
 const getBearerToken = (request: Request) => {
@@ -45,7 +36,7 @@ export const authMiddleware = (
   next: NextFunction,
 ) => {
   try {
-    const payload = jwt.verify(getBearerToken(request), getJwtSecret());
+    const payload = jwt.verify(getBearerToken(request), getJwtSecret("JWT_SECRET"));
 
     if (!isAccessTokenPayload(payload)) {
       throw new HttpError(401, "Authorization token is invalid.");

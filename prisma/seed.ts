@@ -1,15 +1,11 @@
 import "dotenv/config";
 
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("DATABASE_URL is required to seed the database.");
-}
-
-const adapter = new PrismaPg({ connectionString });
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL ?? "file:./dev.db",
+});
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -50,10 +46,10 @@ async function main() {
         status: "SENT",
         currency: "USD",
         notes: "Payment due within 14 days.",
-        subtotal: "1500.00",
-        taxRate: "8.25",
-        taxAmount: "123.75",
-        total: "1623.75",
+        subtotal: 1500,
+        taxRate: 8.25,
+        taxAmount: 123.75,
+        total: 1623.75,
       },
       {
         number: "INV-1002",
@@ -66,10 +62,10 @@ async function main() {
         status: "DRAFT",
         currency: "USD",
         notes: "Draft invoice for review.",
-        subtotal: "2400.00",
-        taxRate: "0.00",
-        taxAmount: "0.00",
-        total: "2400.00",
+        subtotal: 2400,
+        taxRate: 0,
+        taxAmount: 0,
+        total: 2400,
       },
     ],
   });
@@ -97,30 +93,30 @@ async function main() {
       {
         invoiceId: firstInvoiceId,
         description: "Invoice template setup",
-        quantity: "1.00",
-        unitPrice: "600.00",
-        amount: "600.00",
+        quantity: 1,
+        unitPrice: 600,
+        amount: 600,
       },
       {
         invoiceId: firstInvoiceId,
         description: "Billing workflow implementation",
-        quantity: "3.00",
-        unitPrice: "300.00",
-        amount: "900.00",
+        quantity: 3,
+        unitPrice: 300,
+        amount: 900,
       },
       {
         invoiceId: secondInvoiceId,
         description: "Proposal drafting",
-        quantity: "4.00",
-        unitPrice: "250.00",
-        amount: "1000.00",
+        quantity: 4,
+        unitPrice: 250,
+        amount: 1000,
       },
       {
         invoiceId: secondInvoiceId,
         description: "Client portal planning",
-        quantity: "7.00",
-        unitPrice: "200.00",
-        amount: "1400.00",
+        quantity: 7,
+        unitPrice: 200,
+        amount: 1400,
       },
     ],
   });
