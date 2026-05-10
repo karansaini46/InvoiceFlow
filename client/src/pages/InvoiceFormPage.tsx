@@ -26,7 +26,7 @@ const invoiceSchema = z.object({
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
 });
 
-type FormValues = z.infer<typeof invoiceSchema>;
+type FormValues = z.input<typeof invoiceSchema>;
 
 const currencies = [
   { code: "USD", symbol: "$" },
@@ -113,7 +113,7 @@ export function InvoiceFormPage() {
       (sum, item) => sum + (item.quantity * item.unitPrice),
       0
     );
-    const taxAmount = subtotal * (watchedTaxRate / 100);
+    const taxAmount = subtotal * ((watchedTaxRate ?? 0) / 100);
     const total = subtotal + taxAmount;
     return { subtotal, taxAmount, total };
   };
@@ -151,20 +151,26 @@ export function InvoiceFormPage() {
     handleSubmit(onSubmit)();
   };
 
-  const handleSaveAndSend = async () => {
-    try {
-      const data = await handleSubmit<FormValues>((data) => data)();
-      if (isEditing && id) {
-        await invoicesApi.updateStatus(id, "SENT");
-      } else {
-        const invoice = await invoicesApi.create(data as CreateInvoiceData);
-        await invoicesApi.updateStatus(invoice.id, "SENT");
+  const handleSaveAndSend = () => {
+    handleSubmit(async (data) => {
+      try {
+        setLoading(true);
+
+        if (isEditing && id) {
+          await invoicesApi.update(id, data as UpdateInvoiceData);
+          await invoicesApi.updateStatus(id, "SENT");
+        } else {
+          const invoice = await invoicesApi.create(data as CreateInvoiceData);
+          await invoicesApi.updateStatus(invoice.id, "SENT");
+        }
+        navigate("/invoices");
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Failed to save and send invoice");
+        console.error("Error saving and sending invoice:", err);
+      } finally {
+        setLoading(false);
       }
-      navigate("/invoices");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to save and send invoice");
-      console.error("Error saving and sending invoice:", err);
-    }
+    })();
   };
 
   if (loading && isEditing) {
