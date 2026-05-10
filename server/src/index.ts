@@ -1,15 +1,15 @@
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
 import express from "express";
 import helmet from "helmet";
+import type {} from "./types/express";
 
+import "./config/env";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRouter } from "./routes/auth";
+import { dashboardRouter } from "./routes/dashboard";
 import { healthRouter } from "./routes/health";
 import { invoiceRouter } from "./routes/invoiceRouter";
-
-dotenv.config({ quiet: true });
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -25,6 +25,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/auth", authRouter);
+app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
 
