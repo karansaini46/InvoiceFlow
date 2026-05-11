@@ -30,12 +30,17 @@ const getInvoiceForRender = async (invoiceId: string) =>
         select: {
           email: true,
           name: true,
+          businessName: true,
+          businessAddress: true,
+          businessPhone: true,
+          businessWebsite: true,
+          logoUrl: true,
         },
       },
     },
-  });
+  }) as any;
 
-type InvoiceForRender = NonNullable<Awaited<ReturnType<typeof getInvoiceForRender>>>;
+type InvoiceForRender = any;
 
 export const escapeHtml = (value: string | number | null | undefined) =>
   String(value ?? "")
@@ -67,9 +72,11 @@ const renderNotes = (notes: string) =>
 
 const renderInvoiceHtml = (invoice: InvoiceForRender) => {
   const currency = invoice.currency || "USD";
+  const user = invoice.user;
+  const businessName = user.businessName || user.name;
   const lineItems = invoice.lineItems
     .map(
-      (item) => `
+      (item: any) => `
         <tr>
           <td class="description">${escapeHtml(item.description)}</td>
           <td>${escapeHtml(item.quantity)}</td>
@@ -294,10 +301,13 @@ const renderInvoiceHtml = (invoice: InvoiceForRender) => {
       <section class="invoice">
         <header class="header">
           <div class="brand">
-            <div class="logo">IF</div>
+            ${user.logoUrl ? `<img src="${escapeHtml(user.logoUrl)}" alt="Logo" style="width: 64px; height: 64px; border-radius: 14px; object-fit: cover;">` : '<div class="logo">IF</div>'}
             <div>
-              <div class="company-name">${escapeHtml(invoice.user.name)}</div>
-              <div class="company-email">${escapeHtml(invoice.user.email)}</div>
+              <div class="company-name">${escapeHtml(businessName)}</div>
+              <div class="company-email">${escapeHtml(user.email)}</div>
+              ${user.businessAddress ? `<div class="company-email">${escapeHtml(user.businessAddress)}</div>` : ''}
+              ${user.businessPhone ? `<div class="company-email">${escapeHtml(user.businessPhone)}</div>` : ''}
+              ${user.businessWebsite ? `<div class="company-email">${escapeHtml(user.businessWebsite)}</div>` : ''}
             </div>
           </div>
           <div class="invoice-meta">

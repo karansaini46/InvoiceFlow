@@ -12,6 +12,7 @@ import { healthRouter } from "./routes/health";
 import { invoiceRouter } from "./routes/invoiceRouter";
 import { paymentRouter } from "./routes/payment";
 import { proposalRouter } from "./routes/proposalRouter";
+import { settingsRouter } from "./routes/settings";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -36,6 +37,7 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 app.use("/auth", authRouter);
 app.use("/dashboard", dashboardRouter);
@@ -43,6 +45,7 @@ app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
 app.use("/payment", paymentRouter);
 app.use("/proposals", proposalRouter);
+app.use("/settings", settingsRouter);
 
 app.use(errorHandler);
 
