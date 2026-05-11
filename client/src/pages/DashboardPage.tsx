@@ -4,13 +4,13 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { PlanBadge } from "@/components/PlanBadge";
 import { dashboardApi, type DashboardStats } from "@/lib/api/dashboard";
 import { invoicesApi } from "@/lib/api/invoices";
 import { api } from "@/lib/axios";
@@ -31,7 +31,7 @@ const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: ChartIcon },
   { label: "Invoices", href: "/invoices", icon: InvoiceIcon },
   { label: "Proposals", href: "/proposals", icon: ProposalIcon },
-  { label: "Settings", href: "/settings", icon: SettingsIcon },
+  { label: "Upgrade", href: "/upgrade", icon: SettingsIcon },
 ];
 
 function ChartIcon({ className = "" }: IconProps) {
@@ -375,6 +375,7 @@ export function DashboardPage() {
                   </p>
                   <p className="truncate text-xs text-slate-500">{user?.email}</p>
                 </div>
+                {user ? <PlanBadge plan={user.plan} /> : null}
               </div>
               <button
                 type="button"
@@ -463,27 +464,30 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-5 h-72">
+            <div className="mt-5 h-72 overflow-x-auto">
               {loading ? (
                 <SkeletonBlock className="h-full w-full" />
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats?.monthlyRevenue ?? []}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={10} />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => `$${Number(value) / 1000}k`}
-                      width={48}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "#F1F5F9" }}
-                      formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
-                    />
-                    <Bar dataKey="total" fill="#0F172A" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart
+                  data={stats?.monthlyRevenue ?? []}
+                  height={288}
+                  margin={{ bottom: 8, left: 0, right: 16, top: 8 }}
+                  width={760}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={10} />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `$${Number(value) / 1000}k`}
+                    width={48}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "#F1F5F9" }}
+                    formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
+                  />
+                  <Bar dataKey="total" fill="#0F172A" radius={[6, 6, 0, 0]} />
+                </BarChart>
               )}
             </div>
           </section>

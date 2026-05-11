@@ -1,7 +1,12 @@
+import dotenv from "dotenv";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import dotenv from "dotenv";
+dotenv.config({
+  path: path.resolve(__dirname, "../../.env"),
+  override: false,
+  quiet: true,
+});
 
 let isLoaded = false;
 
@@ -31,6 +36,7 @@ export const loadEnv = () => {
   isLoaded = true;
 
   for (const envPath of unique([
+    path.resolve(__dirname, "../../.env"),
     path.resolve(process.cwd(), ".env"),
     path.resolve(process.cwd(), "..", ".env"),
     path.join(getWorkspaceRoot(), ".env"),

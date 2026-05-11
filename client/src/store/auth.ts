@@ -1,10 +1,12 @@
 import { create } from "zustand";
 
+import { normalizePlan, type Plan } from "@/lib/plan";
+
 export type AuthUser = {
   id: string;
   email: string;
   name: string;
-  plan: string;
+  plan: Plan;
 };
 
 export type AuthSession = {
@@ -17,11 +19,23 @@ type AuthState = {
   token: string | null;
   isAuthenticated: boolean;
   login: (session: AuthSession) => void;
+  setPlan: (plan: string) => void;
   logout: () => void;
 };
 
 const storedUser = localStorage.getItem("user");
-const initialUser = storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
+const initialUser = storedUser
+  ? (() => {
+      const parsedUser = JSON.parse(storedUser) as Omit<AuthUser, "plan"> & {
+        plan: string;
+      };
+
+      return {
+        ...parsedUser,
+        plan: normalizePlan(parsedUser.plan),
+      };
+    })()
+  : null;
 const initialToken = localStorage.getItem("token");
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -29,13 +43,34 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: initialToken,
   user: initialUser,
   login: ({ accessToken, user }) => {
+    const normalizedUser: AuthUser = {
+      ...user,
+      plan: normalizePlan(user.plan),
+    };
+
     localStorage.setItem("token", accessToken);
-    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
 
     set({
       isAuthenticated: true,
       token: accessToken,
-      user,
+      user: normalizedUser,
+    });
+  },
+  setPlan: (plan) => {
+    set((state) => {
+      if (!state.user) {
+        return {};
+      }
+
+      const nextUser = {
+        ...state.user,
+        plan: normalizePlan(plan),
+      };
+
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      return { user: nextUser };
     });
   },
   logout: () => {

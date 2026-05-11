@@ -10,6 +10,7 @@ import { authRouter } from "./routes/auth";
 import { dashboardRouter } from "./routes/dashboard";
 import { healthRouter } from "./routes/health";
 import { invoiceRouter } from "./routes/invoiceRouter";
+import { paymentRouter } from "./routes/payment";
 import { proposalRouter } from "./routes/proposalRouter";
 
 const app = express();
@@ -19,7 +20,18 @@ app.use(helmet());
 app.use(
   cors({
     credentials: true,
-    origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin.startsWith("http://localhost") ||
+        origin === process.env.CLIENT_URL
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
   }),
 );
 app.use(cookieParser());
@@ -29,10 +41,17 @@ app.use("/auth", authRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
+app.use("/payment", paymentRouter);
 app.use("/proposals", proposalRouter);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
+const server = app.listen(port, (error?: Error) => {
+  if (error) {
+    throw error;
+  }
+
   console.log(`Server running on port ${port}`);
 });
+
+server.ref();
