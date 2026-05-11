@@ -19,7 +19,18 @@ app.use(helmet());
 app.use(
   cors({
     credentials: true,
-    origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin.startsWith("http://localhost") ||
+        origin === process.env.CLIENT_URL
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
   }),
 );
 app.use(cookieParser());
@@ -33,6 +44,12 @@ app.use("/proposals", proposalRouter);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
+const server = app.listen(port, (error?: Error) => {
+  if (error) {
+    throw error;
+  }
+
   console.log(`Server running on port ${port}`);
 });
+
+server.ref();
