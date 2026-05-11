@@ -10,6 +10,7 @@ import { ProposalDetailPage } from "@/pages/ProposalDetailPage";
 import { ProposalFormPage } from "@/pages/ProposalFormPage";
 import { ProposalsListPage } from "@/pages/ProposalsListPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 import { UpgradePage } from "@/pages/UpgradePage";
 
 export function App() {
@@ -45,6 +46,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <UpgradePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

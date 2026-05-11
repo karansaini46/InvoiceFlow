@@ -26,16 +26,25 @@ enum ProposalStatus {
 }
 
 model User {
-  id               String     @id @default(cuid())
-  email            String     @unique
-  passwordHash     String
-  name             String
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  plan             Plan       @default(FREE)
-  stripeCustomerId String?
-  invoices         Invoice[]
-  proposals        Proposal[]
+  id                  String     @id @default(cuid())
+  email               String     @unique
+  passwordHash        String
+  name                String
+  businessName        String?
+  businessAddress     String?
+  businessPhone       String?
+  businessWebsite     String?
+  logoUrl             String?
+  defaultCurrency     String     @default("USD")
+  defaultTaxRate      Float      @default(0)
+  defaultPaymentTerms String     @default("Net 30")
+  defaultNotes        String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  plan                Plan       @default(FREE)
+  stripeCustomerId    String?
+  invoices            Invoice[]
+  proposals           Proposal[]
 }
 
 model Invoice {
