@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { NextFunction, Request, Response } from "express";
 
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/authMiddleware";
@@ -21,12 +20,6 @@ type PaidInvoiceForChart = {
   total: number;
 };
 
-type AuthenticatedRequest = Request & {
-  user: {
-    id: string;
-  };
-};
-
 const getMonthKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -35,9 +28,9 @@ const getMonthLabel = (date: Date) =>
 
 router.use(authMiddleware);
 
-router.get("/stats", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", async (req, res, next) => {
   try {
-    const userId = (req as AuthenticatedRequest).user.id;
+    const userId = req.user!.id;
     const now = new Date();
     const monthlyBuckets = Array.from({ length: 6 }, (_, index) => {
       const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);

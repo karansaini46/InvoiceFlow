@@ -9,11 +9,6 @@ type AccessTokenPayload = {
   email: string;
   plan: string;
 };
-
-type AuthenticatedRequest = Request & {
-  user?: AccessTokenPayload;
-};
-
 const getBearerToken = (request: Request) => {
   const authorization = request.header("authorization");
 
@@ -46,7 +41,7 @@ export const authMiddleware = (
       throw new HttpError(401, "Authorization token is invalid.");
     }
 
-    (request as AuthenticatedRequest).user = {
+    request.user = {
       id: payload.id,
       email: payload.email,
       plan: payload.plan,
