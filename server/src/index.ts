@@ -10,6 +10,7 @@ import { authRouter } from "./routes/auth";
 import { dashboardRouter } from "./routes/dashboard";
 import { healthRouter } from "./routes/health";
 import { invoiceRouter } from "./routes/invoiceRouter";
+import { paymentRouter } from "./routes/payment";
 import { proposalRouter } from "./routes/proposalRouter";
 
 const app = express();
@@ -40,6 +41,7 @@ app.use("/auth", authRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
+app.use("/payment", paymentRouter);
 app.use("/proposals", proposalRouter);
 
 app.use(errorHandler);

@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { PlanBadge } from "@/components/PlanBadge";
 import { dashboardApi, type DashboardStats } from "@/lib/api/dashboard";
 import { invoicesApi } from "@/lib/api/invoices";
 import { api } from "@/lib/axios";
@@ -30,7 +31,7 @@ const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: ChartIcon },
   { label: "Invoices", href: "/invoices", icon: InvoiceIcon },
   { label: "Proposals", href: "/proposals", icon: ProposalIcon },
-  { label: "Settings", href: "/settings", icon: SettingsIcon },
+  { label: "Upgrade", href: "/upgrade", icon: SettingsIcon },
 ];
 
 function ChartIcon({ className = "" }: IconProps) {
@@ -374,6 +375,7 @@ export function DashboardPage() {
                   </p>
                   <p className="truncate text-xs text-slate-500">{user?.email}</p>
                 </div>
+                {user ? <PlanBadge plan={user.plan} /> : null}
               </div>
               <button
                 type="button"

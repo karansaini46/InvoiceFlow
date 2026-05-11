@@ -9,6 +9,7 @@ import {
   getPublicInvoiceHtml,
 } from "../services/pdfService";
 import { HttpError } from "../utils/httpError";
+import { toPublicPlan } from "../utils/plan";
 
 // Zod schemas
 const lineItemSchema = z.object({
@@ -114,6 +115,23 @@ export const createInvoice = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = req.user!.id;
     const validatedData = createInvoiceSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+
+    if (!user) {
+      throw new HttpError(404, "User not found");
+    }
+
+    const invoiceCount = await prisma.invoice.count({
+      where: { userId },
+    });
+
+    if (toPublicPlan(user.plan) === "free" && invoiceCount >= 3) {
+      throw new HttpError(403, "Upgrade to PRO to create unlimited invoices");
+    }
 
     const invoiceNumber = await generateInvoiceNumber(userId);
     const { subtotal, taxAmount, total } = calculateTotals(

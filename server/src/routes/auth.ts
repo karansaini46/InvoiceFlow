@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getJwtSecret } from "../config/jwt";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { toPublicPlan } from "../utils/plan";
 
 const refreshCookieName = "refreshToken";
 const accessTokenExpiry = "15m";
@@ -44,7 +45,7 @@ type AuthUser = TokenUser & {
 const toTokenUser = (user: AuthUser): TokenUser => ({
   id: user.id,
   email: user.email,
-  plan: user.plan,
+  plan: toPublicPlan(user.plan),
 });
 
 const signAccessToken = (user: AuthUser) =>
@@ -173,9 +174,13 @@ authRouter.post("/refresh", async (request, response) => {
     throw new HttpError(401, "Refresh token is invalid.");
   }
 
+  const authUser = {
+    ...user,
+    plan: toPublicPlan(user.plan),
+  };
   const accessToken = signAccessToken(user);
 
-  response.status(200).json({ accessToken, user });
+  response.status(200).json({ accessToken, user: authUser });
 });
 
 authRouter.post("/logout", (_request, response) => {

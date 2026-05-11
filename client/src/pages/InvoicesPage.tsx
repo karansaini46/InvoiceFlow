@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { invoicesApi } from "@/lib/api/invoices";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/Button";
+import { PlanBadge } from "@/components/PlanBadge";
 import { Toast } from "@/components/Toast";
 import { Page } from "@/pages/Page";
+import { useAuthStore } from "@/store/auth";
 import type { Invoice } from "@/types/invoice";
 
 export function InvoicesPage() {
@@ -13,6 +15,7 @@ export function InvoicesPage() {
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     loadInvoices();
@@ -97,6 +100,15 @@ export function InvoicesPage() {
   return (
     <Page title="Invoices" description="Review and manage invoice records.">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
+      {user?.plan === "free" ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>You've used {invoices.length}/3 free invoices. Upgrade to PRO for unlimited.</p>
+            <PlanBadge plan={user.plan} />
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-6">
         <Link to="/invoices/new">
