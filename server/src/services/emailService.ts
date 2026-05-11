@@ -51,6 +51,15 @@ const getPublicInvoiceUrl = (invoiceId: string) => {
   return `${baseUrl.replace(/\/$/, "")}/invoices/${invoiceId}/view`;
 };
 
+const getPublicProposalUrl = (proposalId: string) => {
+  const baseUrl =
+    process.env.PUBLIC_PROPOSAL_BASE_URL ??
+    process.env.PUBLIC_INVOICE_BASE_URL ??
+    `http://localhost:${process.env.PORT ?? 3000}`;
+
+  return `${baseUrl.replace(/\/$/, "")}/proposals/${proposalId}/view`;
+};
+
 const getInvoiceForEmail = async (invoiceId: string) =>
   prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -66,6 +75,21 @@ const getInvoiceForEmail = async (invoiceId: string) =>
   });
 
 type InvoiceForEmail = NonNullable<Awaited<ReturnType<typeof getInvoiceForEmail>>>;
+
+const getProposalForEmail = async (proposalId: string) =>
+  prisma.proposal.findUnique({
+    where: { id: proposalId },
+    include: {
+      user: {
+        select: {
+          email: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+type ProposalForEmail = NonNullable<Awaited<ReturnType<typeof getProposalForEmail>>>;
 
 const renderEmailHtml = (invoice: InvoiceForEmail, publicUrl: string) => {
   const amountDue = formatInvoiceCurrency(invoice.total, invoice.currency);
@@ -161,6 +185,81 @@ export const sendInvoiceEmail = async (invoiceId: string, userId: string) => {
 
   return {
     clientEmail: invoice.clientEmail,
+    publicUrl,
+  };
+};
+
+const renderProposalEmailHtml = (proposal: ProposalForEmail, publicUrl: string) => `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>${escapeHtml(proposal.title)}</title>
+  </head>
+  <body style="margin:0;background:#f8fafc;color:#0f172a;font-family:Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e2e8f0;">
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 12px;font-size:24px;line-height:32px;color:#0f172a;">${escapeHtml(proposal.title)}</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#334155;">
+                  ${escapeHtml(proposal.user.name)} has sent you a proposal for review.
+                </p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 28px;border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:12px;border-top:1px solid #e2e8f0;color:#64748b;">Client</td>
+                    <td align="right" style="padding:12px;border-top:1px solid #e2e8f0;font-weight:700;color:#0f172a;">${escapeHtml(proposal.clientName)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;color:#64748b;">From</td>
+                    <td align="right" style="padding:12px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f172a;">${escapeHtml(proposal.user.name)}</td>
+                  </tr>
+                </table>
+                <a href="${escapeHtml(publicUrl)}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;">
+                  View proposal
+                </a>
+                <p style="margin:28px 0 0;font-size:13px;line-height:20px;color:#64748b;">
+                  If the button does not work, open this link: <br>
+                  <a href="${escapeHtml(publicUrl)}" style="color:#0f766e;">${escapeHtml(publicUrl)}</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+export const sendProposalEmail = async (proposalId: string, userId: string) => {
+  const proposal = await getProposalForEmail(proposalId);
+
+  if (!proposal) {
+    throw new HttpError(404, "Proposal not found");
+  }
+
+  if (proposal.userId !== userId) {
+    throw new HttpError(403, "Proposal does not belong to this user");
+  }
+
+  const publicUrl = getPublicProposalUrl(proposal.id);
+
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM ?? getRequiredEnv("SMTP_USER"),
+    to: proposal.clientEmail,
+    replyTo: proposal.user.email,
+    subject: `${proposal.title} from ${proposal.user.name}`,
+    html: renderProposalEmailHtml(proposal, publicUrl),
+    text: [
+      `${proposal.title} from ${proposal.user.name}`,
+      `Client: ${proposal.clientName}`,
+      `View proposal: ${publicUrl}`,
+    ].join("\n"),
+  });
+
+  return {
+    clientEmail: proposal.clientEmail,
     publicUrl,
   };
 };
