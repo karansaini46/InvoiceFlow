@@ -1,10 +1,10 @@
-import type { InvoiceStatus } from "@/types/invoice";
+import type { InvoiceStatus, ProposalStatus } from "@/types/invoice";
 
 interface StatusBadgeProps {
-  status: InvoiceStatus;
+  status: InvoiceStatus | ProposalStatus;
 }
 
-const statusConfig: Record<InvoiceStatus, { label: string; className: string }> = {
+const statusConfig: Record<InvoiceStatus | ProposalStatus, { label: string; className: string }> = {
   DRAFT: {
     label: "Draft",
     className: "bg-gray-100 text-gray-800 border-gray-200",
@@ -19,6 +19,14 @@ const statusConfig: Record<InvoiceStatus, { label: string; className: string }> 
   },
   OVERDUE: {
     label: "Overdue",
+    className: "bg-red-100 text-red-800 border-red-200",
+  },
+  ACCEPTED: {
+    label: "Accepted",
+    className: "bg-green-100 text-green-800 border-green-200",
+  },
+  DECLINED: {
+    label: "Declined",
     className: "bg-red-100 text-red-800 border-red-200",
   },
 };

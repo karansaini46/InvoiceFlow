@@ -10,6 +10,7 @@ import { authRouter } from "./routes/auth";
 import { dashboardRouter } from "./routes/dashboard";
 import { healthRouter } from "./routes/health";
 import { invoiceRouter } from "./routes/invoiceRouter";
+import { proposalRouter } from "./routes/proposalRouter";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -28,6 +29,7 @@ app.use("/auth", authRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
+app.use("/proposals", proposalRouter);
 
 app.use(errorHandler);
 

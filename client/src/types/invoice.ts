@@ -1,4 +1,5 @@
 export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE";
+export type ProposalStatus = "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED";
 
 export interface LineItem {
   id: string;
@@ -60,3 +61,26 @@ export interface UpdateInvoiceData {
     unitPrice: number;
   }[];
 }
+
+export interface Proposal {
+  id: string;
+  userId: string;
+  title: string;
+  clientName: string;
+  clientEmail: string;
+  content: string;
+  status: ProposalStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProposalData {
+  title: string;
+  clientName: string;
+  clientEmail: string;
+  content: string;
+}
+
+export type UpdateProposalData = Partial<CreateProposalData> & {
+  status?: ProposalStatus;
+};
