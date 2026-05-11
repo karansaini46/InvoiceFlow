@@ -2,7 +2,11 @@ import dotenv from "dotenv";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: false });
+dotenv.config({
+  path: path.resolve(__dirname, "../../.env"),
+  override: false,
+  quiet: true,
+});
 
 let isLoaded = false;
 
