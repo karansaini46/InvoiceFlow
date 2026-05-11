@@ -2,6 +2,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
 import helmet from "helmet";
+import type {} from "./types/express";
 
 import "./config/env";
 import { errorHandler } from "./middleware/errorHandler";

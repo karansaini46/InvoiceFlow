@@ -9,7 +9,6 @@ type AccessTokenPayload = {
   email: string;
   plan: string;
 };
-
 const getBearerToken = (request: Request) => {
   const authorization = request.header("authorization");
 
