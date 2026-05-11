@@ -2,21 +2,25 @@ import { loadEnv } from "./env";
 
 loadEnv();
 
-const localJwtSecrets = {
-  JWT_REFRESH_SECRET: "invoiceflow-local-refresh-secret",
-  JWT_SECRET: "invoiceflow-local-access-secret",
-} as const;
+const requiredJwtSecretNames = ["JWT_SECRET", "JWT_REFRESH_SECRET"] as const;
 
-export const getJwtSecret = (name: keyof typeof localJwtSecrets) => {
-  const configuredSecret = process.env[name];
+type JwtSecretName = (typeof requiredJwtSecretNames)[number];
 
-  if (configuredSecret) {
-    return configuredSecret;
+const getRequiredJwtSecret = (name: JwtSecretName) => {
+  const secret = process.env[name];
+
+  if (!secret) {
+    throw new Error(`${name} is not set. Refusing to start.`);
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    return localJwtSecrets[name];
-  }
+  return secret;
+};
 
-  throw new Error(`${name} is required.`);
+const jwtSecrets: Record<JwtSecretName, string> = {
+  JWT_SECRET: getRequiredJwtSecret("JWT_SECRET"),
+  JWT_REFRESH_SECRET: getRequiredJwtSecret("JWT_REFRESH_SECRET"),
+};
+
+export const getJwtSecret = (name: JwtSecretName) => {
+  return jwtSecrets[name];
 };
