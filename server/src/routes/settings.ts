@@ -55,10 +55,19 @@ const passwordChangeSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters."),
 });
 
+const getAuthenticatedUser = (req: Request) => {
+  if (!req.user) {
+    throw new HttpError(401, "Authorization token is required.");
+  }
+
+  return req.user;
+};
+
 // GET /settings/profile - Get user profile
 router.get("/profile", authMiddleware, async (req: Request, res: Response) => {
+  const authUser = getAuthenticatedUser(req);
   const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
     select: {
       id: true,
       email: true,
@@ -87,9 +96,10 @@ router.get("/profile", authMiddleware, async (req: Request, res: Response) => {
 // PATCH /settings/profile - Update user profile
 router.patch("/profile", authMiddleware, async (req: Request, res: Response) => {
   const body = profileUpdateSchema.parse(req.body);
-  
+  const authUser = getAuthenticatedUser(req);
+
   const user = await prisma.user.update({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
     data: body,
     select: {
       id: true,
@@ -118,9 +128,10 @@ router.post("/logo", authMiddleware, upload.single("logo"), async (req: Request,
   }
 
   const logoUrl = `/uploads/${req.file.filename}`;
+  const authUser = getAuthenticatedUser(req);
 
   const user = await prisma.user.update({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
     data: { logoUrl },
     select: {
       id: true,
@@ -134,9 +145,10 @@ router.post("/logo", authMiddleware, upload.single("logo"), async (req: Request,
 // PATCH /settings/password - Change password
 router.patch("/password", authMiddleware, async (req: Request, res: Response) => {
   const body = passwordChangeSchema.parse(req.body);
+  const authUser = getAuthenticatedUser(req);
 
   const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
     select: { passwordHash: true },
   });
 
@@ -152,7 +164,7 @@ router.patch("/password", authMiddleware, async (req: Request, res: Response) =>
   const newPasswordHash = await bcrypt.hash(body.newPassword, 12);
 
   await prisma.user.update({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
     data: { passwordHash: newPasswordHash },
   });
 
@@ -161,8 +173,10 @@ router.patch("/password", authMiddleware, async (req: Request, res: Response) =>
 
 // DELETE /settings/account - Delete user account
 router.delete("/account", authMiddleware, async (req: Request, res: Response) => {
+  const authUser = getAuthenticatedUser(req);
+
   await prisma.user.delete({
-    where: { id: req.user.id },
+    where: { id: authUser.id },
   });
 
   res.status(204).send();
