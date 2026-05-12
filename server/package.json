@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p ./tsconfig.json",
     "lint": "tsc --noEmit",
     "start": "node dist/index.js"
   },
