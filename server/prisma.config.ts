@@ -8,10 +8,10 @@ if (!connectionString) {
 }
 
 export default defineConfig({
-  schema: "server/prisma/schema.prisma",
+  schema: "./prisma/schema.prisma",
   migrations: {
-    path: "server/prisma/migrations",
-    seed: "tsx server/prisma/seed.ts",
+    path: "./prisma/migrations",
+    seed: "tsx ./prisma/seed.ts",
   },
   datasource: {
     url: connectionString,
