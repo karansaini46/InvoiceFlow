@@ -1,31 +1,17 @@
-import path from "node:path";
-
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-import { getWorkspaceRoot, loadEnv } from "../config/env";
+import { loadEnv } from "../config/env";
 
 loadEnv();
 
-const resolveDatabaseUrl = () => {
-  const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+const connectionString = process.env.DATABASE_URL;
 
-  if (!databaseUrl.startsWith("file:")) {
-    return databaseUrl;
-  }
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required");
+}
 
-  const sqlitePath = databaseUrl.slice("file:".length);
-
-  if (sqlitePath === ":memory:" || path.isAbsolute(sqlitePath)) {
-    return databaseUrl;
-  }
-
-  return `file:${path.join(getWorkspaceRoot(), sqlitePath)}`;
-};
-
-const adapter = new PrismaBetterSqlite3({
-  url: resolveDatabaseUrl(),
-});
+const adapter = new PrismaPg({ connectionString });
 
 export const prisma = new PrismaClient({
   adapter,
