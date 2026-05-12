@@ -3,26 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-}
-
-enum Plan {
-  FREE
-  PRO
-}
-
-enum InvoiceStatus {
-  DRAFT
-  SENT
-  PAID
-  OVERDUE
-}
-
-enum ProposalStatus {
-  DRAFT
-  SENT
-  ACCEPTED
-  DECLINED
+  provider = "postgresql"
 }
 
 model User {
@@ -97,4 +78,23 @@ model Proposal {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
 }

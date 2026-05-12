@@ -1,1 +1,0 @@
-ALTER TABLE "Proposal" ADD COLUMN "clientEmail" TEXT NOT NULL DEFAULT '';
