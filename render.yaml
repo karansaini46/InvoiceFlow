@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: invoiceflow-backend
+    env: node
+    rootDir: server
+    buildCommand: pnpm install --frozen-lockfile && pnpm run deploy:build
+    startCommand: pnpm start
