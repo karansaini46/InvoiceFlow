@@ -2,6 +2,9 @@
   "name": "@invoiceflow/server",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.22.0"
+  },
   "scripts": {
     "dev": "nodemon",
     "build": "tsc -p ./tsconfig.json",

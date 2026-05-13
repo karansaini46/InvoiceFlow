@@ -6,6 +6,8 @@ InvoiceFlow is a pnpm workspace monorepo with a React frontend and an Express ba
 
 ## Development
 
+Use Node.js `22.22.0`. The repo includes `.node-version` and `.nvmrc` so local tooling and Render can pick the same runtime.
+
 ```bash
 pnpm install
 pnpm dev
