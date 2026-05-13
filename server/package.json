@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon",
     "build": "tsc -p ./tsconfig.json",
-    "deploy:build": "pnpm run prisma:generate && pnpm run build",
+    "deploy:build": "prisma generate && tsc -p ./tsconfig.json",
     "db:deploy": "prisma migrate deploy",
     "lint": "tsc --noEmit",
     "prisma:generate": "prisma generate",
