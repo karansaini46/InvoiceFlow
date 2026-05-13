@@ -2,8 +2,9 @@ import dotenv from "dotenv";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+// Only load server-specific .env for separate deployments
 dotenv.config({
-  path: path.resolve(__dirname, "../../.env"),
+  path: path.resolve(__dirname, "../../.env"), // server/.env
   override: false,
   quiet: true,
 });
@@ -35,12 +36,13 @@ export const loadEnv = () => {
 
   isLoaded = true;
 
-  for (const envPath of unique([
-    path.resolve(__dirname, "../../.env"),
-    path.resolve(process.cwd(), ".env"),
-    path.resolve(process.cwd(), "..", ".env"),
-    path.join(getWorkspaceRoot(), ".env"),
-  ])) {
+  // Only look for .env in server directory for separate deployments
+  const serverEnvPaths = unique([
+    path.resolve(__dirname, "../../.env"), // server/.env from src/config/
+    path.resolve(process.cwd(), ".env"),    // server/.env from server root
+  ]);
+
+  for (const envPath of serverEnvPaths) {
     if (existsSync(envPath)) {
       dotenv.config({ path: envPath, override: false, quiet: true });
     }

@@ -432,7 +432,7 @@ export const generateInvoicePDF = async (invoiceId: string, userId: string) => {
 
   try {
     await page.setContent(renderInvoiceHtml(invoice), {
-      waitUntil: "networkidle0",
+      waitUntil: "load",
     });
 
     return Buffer.from(

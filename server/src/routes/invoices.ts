@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "../lib/prisma";
@@ -277,7 +278,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
       });
       const taxRate = validatedData.taxRate !== undefined ? validatedData.taxRate : Number(existingInvoice.taxRate);
       const calculatedTotals = calculateTotals(
-        lineItems.map(item => ({
+        lineItems.map((item: { description: string; quantity: number | string; unitPrice: number | string }) => ({
           description: item.description,
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
@@ -290,7 +291,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
     }
 
     // Update invoice with transaction
-    const updatedInvoice = await prisma.$transaction(async (tx) => {
+    const updatedInvoice = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Delete old line items if new ones are provided
       if (validatedData.lineItems) {
         await tx.lineItem.deleteMany({
