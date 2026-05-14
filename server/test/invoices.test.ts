@@ -2,6 +2,18 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import { testApp, testAccessToken, testUserId, prisma } from './setup';
 
+const parseBinaryResponse = (res: NodeJS.ReadableStream, callback: (error: Error | null, body: Buffer) => void) => {
+  const chunks: Buffer[] = [];
+
+  res.on('data', (chunk: Buffer | string) => {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+  res.on('end', () => {
+    callback(null, Buffer.concat(chunks));
+  });
+  res.on('error', callback);
+};
+
 describe('Invoice Endpoints', () => {
   let userInvoiceId: string;
   let otherUserId: string;
@@ -297,6 +309,52 @@ describe('Invoice Endpoints', () => {
         .expect(401);
 
       expect(response.body).toHaveProperty('message');
+    });
+  });
+
+  describe('GET /invoices/:id/pdf', () => {
+    beforeEach(async () => {
+      const invoice = await prisma.invoice.create({
+        data: {
+          number: 'INV-006',
+          userId: testUserId,
+          clientName: 'PDF Test Client',
+          clientEmail: 'pdf@example.com',
+          clientAddress: '123 PDF St',
+          issueDate: new Date(),
+          dueDate: new Date(),
+          status: 'DRAFT',
+          currency: 'USD',
+          notes: 'PDF test notes',
+          subtotal: 100,
+          taxRate: 10,
+          taxAmount: 10,
+          total: 110,
+          lineItems: {
+            create: {
+              description: 'PDF Test Item',
+              quantity: 1,
+              unitPrice: 100,
+              amount: 100,
+            }
+          }
+        }
+      });
+      userInvoiceId = invoice.id;
+    });
+
+    it('should download a PDF for the user invoice', async () => {
+      const response = await request(testApp)
+        .get(`/invoices/${userInvoiceId}/pdf`)
+        .set('Authorization', `Bearer ${testAccessToken}`)
+        .buffer(true)
+        .parse(parseBinaryResponse)
+        .expect(200);
+
+      expect(response.headers['content-type']).toMatch(/application\/pdf/);
+      expect(response.headers['content-disposition']).toContain('invoice-INV-006.pdf');
+      expect(Buffer.isBuffer(response.body)).toBe(true);
+      expect(response.body.subarray(0, 4).toString()).toBe('%PDF');
     });
   });
 

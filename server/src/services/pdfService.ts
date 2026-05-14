@@ -1,25 +1,7 @@
-import puppeteer, { type Browser } from "puppeteer";
+import PDFDocument from "pdfkit";
 
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
-
-let browserPromise: Promise<Browser> | null = null;
-
-const getBrowser = () => {
-  if (!browserPromise) {
-    browserPromise = puppeteer
-      .launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      })
-      .catch((error) => {
-        browserPromise = null;
-        throw error;
-      });
-  }
-
-  return browserPromise;
-};
 
 const getInvoiceForRender = async (invoiceId: string) =>
   prisma.invoice.findUnique({
@@ -416,6 +398,305 @@ export const getInvoicePdfFilename = async (invoiceId: string, userId: string) =
   return `invoice-${safeNumber}.pdf`;
 };
 
+type PdfDoc = PDFKit.PDFDocument;
+
+const pdfColors = {
+  border: "#e2e8f0",
+  header: "#f1f5f9",
+  ink: "#0f172a",
+  muted: "#64748b",
+  subtle: "#334155",
+  white: "#ffffff",
+};
+
+const toPdfText = (value: unknown) => String(value ?? "");
+
+const formatQuantity = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const pageBottom = (doc: PdfDoc) => doc.page.height - doc.page.margins.bottom;
+
+const ensureSpace = (doc: PdfDoc, height: number) => {
+  if (doc.y + height <= pageBottom(doc)) {
+    return;
+  }
+
+  doc.addPage();
+  doc.y = doc.page.margins.top;
+};
+
+const drawLabel = (doc: PdfDoc, text: string, x: number, y: number, width: number) => {
+  doc
+    .fillColor(pdfColors.muted)
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .text(text.toUpperCase(), x, y, { width });
+};
+
+const drawDivider = (doc: PdfDoc, x: number, y: number, width: number, color = pdfColors.border) => {
+  doc.moveTo(x, y).lineTo(x + width, y).lineWidth(1).stroke(color);
+};
+
+const renderPdfHeader = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const contentWidth = right - left;
+  const user = invoice.user;
+  const businessName = toPdfText(user.businessName || user.name || "InvoiceFlow");
+
+  doc.rect(left, 44, 58, 58).fill(pdfColors.ink);
+  doc.fillColor(pdfColors.white).font("Helvetica-Bold").fontSize(20).text("IF", left, 63, {
+    align: "center",
+    width: 58,
+  });
+
+  doc.fillColor(pdfColors.ink).font("Helvetica-Bold").fontSize(18).text(businessName, left + 74, 46, {
+    width: 260,
+  });
+  doc.fillColor(pdfColors.muted).font("Helvetica").fontSize(10);
+  doc.text(toPdfText(user.email), left + 74, doc.y + 4, { width: 260 });
+
+  [user.businessAddress, user.businessPhone, user.businessWebsite].filter(Boolean).forEach((value) => {
+    doc.text(toPdfText(value), left + 74, doc.y + 2, { width: 260 });
+  });
+
+  doc.fillColor(pdfColors.ink).font("Helvetica-Bold").fontSize(30).text("Invoice", right - 180, 46, {
+    align: "right",
+    width: 180,
+  });
+  doc.fillColor(pdfColors.subtle).font("Helvetica-Bold").fontSize(12).text(toPdfText(invoice.number), right - 180, 84, {
+    align: "right",
+    width: 180,
+  });
+
+  drawDivider(doc, left, 124, contentWidth, pdfColors.ink);
+  doc.y = 150;
+};
+
+const renderPdfBillingDetails = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const dateX = left + 310;
+  const dateLabelWidth = 78;
+  const dateValueWidth = right - dateX - dateLabelWidth;
+  const startY = doc.y;
+
+  drawLabel(doc, "Bill to", left, startY, 220);
+  doc.fillColor(pdfColors.ink).font("Helvetica-Bold").fontSize(15).text(toPdfText(invoice.clientName), left, startY + 18, {
+    width: 240,
+  });
+  doc.fillColor(pdfColors.muted).font("Helvetica").fontSize(10);
+  doc.text(toPdfText(invoice.clientEmail), left, doc.y + 4, { width: 240 });
+  doc.text(toPdfText(invoice.clientAddress), left, doc.y + 8, {
+    lineGap: 2,
+    width: 240,
+  });
+
+  const rows = [
+    ["Issue date", formatInvoiceDate(invoice.issueDate)],
+    ["Due date", formatInvoiceDate(invoice.dueDate)],
+    ["Status", toPdfText(invoice.status)],
+    ["Currency", toPdfText(invoice.currency || "USD")],
+  ];
+
+  rows.forEach(([label, value], index) => {
+    const y = startY + index * 22;
+
+    doc.fillColor(pdfColors.muted).font("Helvetica").fontSize(10).text(label, dateX, y, {
+      width: dateLabelWidth,
+    });
+    doc.fillColor(pdfColors.ink).font("Helvetica-Bold").fontSize(10).text(value, dateX + dateLabelWidth, y, {
+      align: "right",
+      width: dateValueWidth,
+    });
+  });
+
+  doc.y = Math.max(doc.y, startY + 104);
+};
+
+const renderPdfLineItems = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const contentWidth = right - left;
+  const currency = invoice.currency || "USD";
+  const columns = {
+    amount: { width: 92, x: right - 92 },
+    description: { width: contentWidth - 262, x: left },
+    quantity: { width: 52, x: left + contentWidth - 262 },
+    unitPrice: { width: 92, x: right - 184 },
+  };
+
+  const drawTableHeader = () => {
+    ensureSpace(doc, 52);
+    const headerY = doc.y;
+
+    doc.rect(left, headerY, contentWidth, 28).fill(pdfColors.header);
+    doc.fillColor(pdfColors.muted).font("Helvetica-Bold").fontSize(8);
+    doc.text("DESCRIPTION", columns.description.x + 8, headerY + 10, {
+      width: columns.description.width - 16,
+    });
+    doc.text("QTY", columns.quantity.x, headerY + 10, {
+      align: "right",
+      width: columns.quantity.width - 10,
+    });
+    doc.text("UNIT PRICE", columns.unitPrice.x, headerY + 10, {
+      align: "right",
+      width: columns.unitPrice.width - 10,
+    });
+    doc.text("AMOUNT", columns.amount.x, headerY + 10, {
+      align: "right",
+      width: columns.amount.width,
+    });
+    doc.y = headerY + 28;
+  };
+
+  doc.y += 20;
+  drawTableHeader();
+
+  invoice.lineItems.forEach((item: any) => {
+    const description = toPdfText(item.description);
+    const descriptionHeight = doc
+      .font("Helvetica")
+      .fontSize(10)
+      .heightOfString(description, { width: columns.description.width - 16 });
+    const rowHeight = Math.max(40, descriptionHeight + 22);
+
+    if (doc.y + rowHeight > pageBottom(doc)) {
+      doc.addPage();
+      doc.y = doc.page.margins.top;
+      drawTableHeader();
+    }
+
+    const rowY = doc.y;
+
+    doc.fillColor(pdfColors.ink).font("Helvetica").fontSize(10);
+    doc.text(description, columns.description.x + 8, rowY + 11, {
+      lineGap: 2,
+      width: columns.description.width - 16,
+    });
+    doc.text(formatQuantity(item.quantity), columns.quantity.x, rowY + 11, {
+      align: "right",
+      width: columns.quantity.width - 10,
+    });
+    doc.text(formatInvoiceCurrency(item.unitPrice, currency), columns.unitPrice.x, rowY + 11, {
+      align: "right",
+      width: columns.unitPrice.width - 10,
+    });
+    doc.text(formatInvoiceCurrency(item.amount, currency), columns.amount.x, rowY + 11, {
+      align: "right",
+      width: columns.amount.width,
+    });
+
+    drawDivider(doc, left, rowY + rowHeight, contentWidth);
+    doc.y = rowY + rowHeight;
+  });
+};
+
+const renderPdfTotals = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  const right = doc.page.width - doc.page.margins.right;
+  const currency = invoice.currency || "USD";
+  const rowWidth = 232;
+  const rowX = right - rowWidth;
+  const labelX = rowX + 14;
+  const amountX = rowX + 112;
+
+  ensureSpace(doc, 126);
+  let y = doc.y + 28;
+
+  const drawTotalRow = (label: string, value: string, isGrandTotal = false) => {
+    if (isGrandTotal) {
+      doc.rect(rowX, y, rowWidth, 36).fill(pdfColors.ink);
+      doc.fillColor(pdfColors.white);
+    } else {
+      doc.rect(rowX, y, rowWidth, 32).stroke(pdfColors.border);
+      doc.fillColor(pdfColors.ink);
+    }
+
+    doc.font(isGrandTotal ? "Helvetica-Bold" : "Helvetica").fontSize(isGrandTotal ? 12 : 10);
+    doc.text(label, labelX, y + (isGrandTotal ? 11 : 10), { width: 90 });
+    doc.font("Helvetica-Bold").text(value, amountX, y + (isGrandTotal ? 11 : 10), {
+      align: "right",
+      width: rowWidth - 126,
+    });
+
+    y += isGrandTotal ? 36 : 32;
+  };
+
+  drawTotalRow("Subtotal", formatInvoiceCurrency(invoice.subtotal, currency));
+  drawTotalRow(`Tax (${formatQuantity(invoice.taxRate)}%)`, formatInvoiceCurrency(invoice.taxAmount, currency));
+  drawTotalRow("Total", formatInvoiceCurrency(invoice.total, currency), true);
+
+  doc.y = y;
+};
+
+const renderPdfFooter = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const contentWidth = right - left;
+  const columnWidth = (contentWidth - 28) / 2;
+
+  ensureSpace(doc, 110);
+  doc.y += 34;
+  drawDivider(doc, left, doc.y, contentWidth);
+  doc.y += 22;
+
+  const startY = doc.y;
+
+  drawLabel(doc, "Payment terms", left, startY, columnWidth);
+  doc
+    .fillColor(pdfColors.subtle)
+    .font("Helvetica")
+    .fontSize(10)
+    .text(`Payment is due by ${formatInvoiceDate(invoice.dueDate)}.`, left, startY + 18, {
+      lineGap: 2,
+      width: columnWidth,
+    });
+
+  const notesX = left + columnWidth + 28;
+  drawLabel(doc, "Notes", notesX, startY, columnWidth);
+  doc
+    .fillColor(pdfColors.subtle)
+    .font("Helvetica")
+    .fontSize(10)
+    .text(toPdfText(invoice.notes || "Thank you for your business."), notesX, startY + 18, {
+      lineGap: 2,
+      width: columnWidth,
+    });
+};
+
+const renderPdfDocument = (doc: PdfDoc, invoice: InvoiceForRender) => {
+  renderPdfHeader(doc, invoice);
+  renderPdfBillingDetails(doc, invoice);
+  renderPdfLineItems(doc, invoice);
+  renderPdfTotals(doc, invoice);
+  renderPdfFooter(doc, invoice);
+};
+
+const createPdfBuffer = (invoice: InvoiceForRender) =>
+  new Promise<Buffer>((resolve, reject) => {
+    const doc = new PDFDocument({
+      margin: 48,
+      size: "A4",
+      info: {
+        Title: `Invoice ${toPdfText(invoice.number)}`,
+      },
+    });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk: Buffer) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    doc.on("end", () => {
+      resolve(Buffer.concat(chunks));
+    });
+    doc.on("error", reject);
+
+    renderPdfDocument(doc, invoice);
+    doc.end();
+  });
+
 export const generateInvoicePDF = async (invoiceId: string, userId: string) => {
   const invoice = await getInvoiceForRender(invoiceId);
 
@@ -427,22 +708,5 @@ export const generateInvoicePDF = async (invoiceId: string, userId: string) => {
     throw new HttpError(403, "Invoice does not belong to this user");
   }
 
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-
-  try {
-    await page.setContent(renderInvoiceHtml(invoice), {
-      waitUntil: "load",
-    });
-
-    return Buffer.from(
-      await page.pdf({
-        format: "A4",
-        printBackground: true,
-        preferCSSPageSize: true,
-      }),
-    );
-  } finally {
-    await page.close();
-  }
+  return createPdfBuffer(invoice);
 };
