@@ -5,6 +5,7 @@ import helmet from "helmet";
 import type {} from "./types/express";
 
 import "./config/env";
+import { corsOptions } from "./config/cors";
 import { errorHandler } from "./middleware/errorHandler";
 import { authRouter } from "./routes/auth";
 import { dashboardRouter } from "./routes/dashboard";
@@ -18,23 +19,7 @@ const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
 app.use(helmet());
-app.use(
-  cors({
-    credentials: true,
-    origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin.startsWith("http://localhost") ||
-        origin === process.env.CLIENT_URL
-      ) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Not allowed by CORS"));
-    },
-  }),
-);
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));

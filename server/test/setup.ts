@@ -7,7 +7,8 @@ import express from "express";
 import helmet from "helmet";
 
 // Import routes and middleware
-import "./src/config/env";
+import "../src/config/env";
+import { corsOptions } from "../src/config/cors";
 import { errorHandler } from "../src/middleware/errorHandler";
 import { authRouter } from "../src/routes/auth";
 import { dashboardRouter } from "../src/routes/dashboard";
@@ -22,23 +23,7 @@ const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
 app.use(helmet());
-app.use(
-  cors({
-    credentials: true,
-    origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin.startsWith("http://localhost") ||
-        origin === process.env.CLIENT_URL
-      ) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Not allowed by CORS"));
-    },
-  }),
-);
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
