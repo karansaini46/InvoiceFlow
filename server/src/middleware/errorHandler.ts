@@ -22,6 +22,11 @@ const getStatusCode = (error: unknown): number => {
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   const statusCode = getStatusCode(error);
+
+  if (statusCode === 500) {
+    console.error("[500 ERROR]", error);
+  }
+
   const validationErrors = error instanceof ZodError ? error.flatten().fieldErrors : undefined;
   const message =
     error instanceof ZodError
