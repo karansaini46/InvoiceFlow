@@ -68,9 +68,13 @@ const getRefreshCookieOptions = (includeMaxAge = true): CookieOptions => ({
 const sendAuthResponse = (response: Response, user: AuthUser) => {
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
+  const authUser = {
+    ...user,
+    plan: toPublicPlan(user.plan),
+  };
 
   response.cookie(refreshCookieName, refreshToken, getRefreshCookieOptions());
-  response.status(200).json({ accessToken, user });
+  response.status(200).json({ accessToken, user: authUser });
 };
 
 const getRefreshToken = (request: Request) => {
