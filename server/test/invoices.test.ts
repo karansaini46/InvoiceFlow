@@ -4,6 +4,7 @@ import { testApp, testAccessToken, testUserId, prisma } from './setup';
 
 describe('Invoice Endpoints', () => {
   let userInvoiceId: string;
+  let otherUserId: string;
   let otherUserInvoiceId: string;
   let otherUserAccessToken: string;
 
@@ -22,6 +23,7 @@ describe('Invoice Endpoints', () => {
         plan: true,
       }
     });
+    otherUserId = otherUser.id;
 
     // Generate JWT for other user
     const jwt = require('jsonwebtoken');
@@ -70,13 +72,13 @@ describe('Invoice Endpoints', () => {
     await prisma.lineItem.deleteMany({
       where: {
         invoice: {
-          userId: { not: otherUserInvoiceId }
+          userId: { not: otherUserId }
         }
       }
     });
     await prisma.invoice.deleteMany({
       where: {
-        userId: { not: otherUserInvoiceId }
+        userId: { not: otherUserId }
       }
     });
   });

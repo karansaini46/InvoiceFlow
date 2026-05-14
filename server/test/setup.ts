@@ -76,8 +76,15 @@ beforeAll(async () => {
 
   // Create the shared test user used by auth and invoice route tests.
   const passwordHash = await bcrypt.hash(testUser.password, 12);
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: {
+      email: testUser.email,
+    },
+    update: {
+      name: testUser.name,
+      passwordHash,
+    },
+    create: {
       email: testUser.email,
       name: testUser.name,
       passwordHash,
