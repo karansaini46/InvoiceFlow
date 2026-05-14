@@ -1,9 +1,6 @@
-import { execSync } from 'child_process';
 import { beforeAll, afterAll } from 'vitest';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
@@ -59,14 +56,7 @@ app.use(errorHandler);
 // Use the same Prisma client setup as the main application
 import { prisma as mainPrisma } from '../src/lib/prisma';
 
-// Create a test-specific Prisma client
-const testAdapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL_TEST || 'file:./test.db'
-});
-
-const prisma = new PrismaClient({
-  adapter: testAdapter,
-});
+const prisma = mainPrisma;
 
 // Test user data
 export const testUser = {
@@ -79,7 +69,12 @@ let testUserIdInternal: string;
 let testAccessTokenInternal: string;
 
 beforeAll(async () => {
-  // Create test user directly without database reset
+  await prisma.lineItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.proposal.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Create the shared test user used by auth and invoice route tests.
   const passwordHash = await bcrypt.hash(testUser.password, 12);
   const user = await prisma.user.create({
     data: {

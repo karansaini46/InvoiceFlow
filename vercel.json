@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm --filter @invoiceflow/client build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
