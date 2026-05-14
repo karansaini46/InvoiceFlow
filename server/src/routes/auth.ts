@@ -10,7 +10,7 @@ import { HttpError } from "../utils/httpError";
 import { toPublicPlan } from "../utils/plan";
 
 const refreshCookieName = "refreshToken";
-const accessTokenExpiry = "15m";
+const accessTokenExpiry = "7d";
 const refreshTokenExpiry = "7d";
 const refreshTokenMaxAge = 7 * 24 * 60 * 60 * 1000;
 
@@ -61,8 +61,8 @@ const signRefreshToken = (user: AuthUser) =>
 const getRefreshCookieOptions = (includeMaxAge = true): CookieOptions => ({
   httpOnly: true,
   ...(includeMaxAge ? { maxAge: refreshTokenMaxAge } : {}),
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
+  sameSite: "none",
+  secure: true,
 });
 
 const sendAuthResponse = (response: Response, user: AuthUser) => {
