@@ -1,25 +1,35 @@
 import type { HTMLAttributes } from "react";
 
-import { normalizePlan, type Plan } from "@/lib/plan";
+import { normalizePlan } from "@/lib/plan";
 
 type PlanBadgeProps = HTMLAttributes<HTMLSpanElement> & {
   plan: string;
 };
 
-const badgeStyles: Record<Plan, string> = {
-  free: "border-slate-200 bg-slate-100 text-slate-700",
-  pro: "border-emerald-200 bg-emerald-50 text-emerald-800",
-};
-
 export function PlanBadge({ plan, className = "", ...props }: PlanBadgeProps) {
   const normalizedPlan = normalizePlan(plan);
+  const isPro = normalizedPlan === "pro";
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${badgeStyles[normalizedPlan]} ${className}`}
+      className={`inline-flex items-center ${className}`}
+      style={{
+        background: isPro
+          ? "linear-gradient(135deg, var(--accent), var(--accent-cyan))"
+          : "var(--bg-elevated)",
+        border: isPro ? "none" : "1px solid var(--border)",
+        borderRadius: 20,
+        boxShadow: isPro ? "0 0 12px var(--accent-glow)" : "none",
+        color: isPro ? "white" : "var(--text-muted)",
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.05em",
+        padding: "2px 10px",
+        textTransform: "uppercase",
+      }}
       {...props}
     >
-      {normalizedPlan === "pro" ? "PRO" : "FREE"}
+      {isPro ? "✦ PRO" : "FREE"}
     </span>
   );
 }

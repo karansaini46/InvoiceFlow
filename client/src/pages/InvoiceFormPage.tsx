@@ -175,106 +175,102 @@ export function InvoiceFormPage() {
 
   if (loading && isEditing) {
     return (
-      <Page title={isEditing ? "Edit Invoice" : "Create Invoice"} description="Fill in the invoice details below.">
+      <Page title="Invoice" description={isEditing ? "Edit Invoice." : "Create Invoice."}>
         <div className="flex justify-center items-center h-64">
-          <div className="text-gray-500">Loading invoice...</div>
+          <div style={{ color: "var(--text-secondary)" }}>Loading invoice...</div>
         </div>
       </Page>
     );
   }
 
   return (
-    <Page title={isEditing ? "Edit Invoice" : "Create Invoice"} description="Fill in the invoice details below.">
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800">{error}</div>
-        </div>
-      )}
+    <Page title="Invoice" description={isEditing ? "Edit Invoice." : "Create Invoice."}>
+      {error && <div className="error-banner mb-4 text-sm">{error}</div>}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Client Information */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Client Information</h2>
+        <div className="glass-card p-6">
+          <h2 className="section-heading">Client Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Client Name *
               </label>
               <input
                 type="text"
                 {...register("clientName")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.clientName && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientName.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.clientName.message}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Client Email *
               </label>
               <input
                 type="email"
                 {...register("clientEmail")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.clientEmail && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientEmail.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.clientEmail.message}</p>
               )}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Client Address *
               </label>
               <textarea
                 {...register("clientAddress")}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.clientAddress && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientAddress.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.clientAddress.message}</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Invoice Details */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Invoice Details</h2>
+        <div className="glass-card p-6">
+          <h2 className="section-heading">Invoice Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Issue Date *
               </label>
               <input
                 type="date"
                 {...register("issueDate")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.issueDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.issueDate.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.issueDate.message}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Due Date *
               </label>
               <input
                 type="date"
                 {...register("dueDate")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.dueDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.dueDate.message}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Currency
               </label>
               <select
                 {...register("currency")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark appearance-none"
               >
                 {currencies.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -287,75 +283,77 @@ export function InvoiceFormPage() {
         </div>
 
         {/* Line Items */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="glass-card p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Line Items</h2>
+            <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+              Line Items
+            </h2>
             <Button
               type="button"
               onClick={() => append({ description: "", quantity: 1, unitPrice: 0 })}
-              className="text-sm"
+              variant="secondary"
             >
               Add Line Item
             </Button>
           </div>
           
           {errors.lineItems && (
-            <p className="mb-4 text-sm text-red-600">{errors.lineItems.message}</p>
+            <p className="mb-4 text-sm text-[#F87171]">{errors.lineItems.message}</p>
           )}
 
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-12 gap-4 items-center">
-                <div className="col-span-6">
+              <div key={field.id} className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-start">
+                <div className="md:col-span-6">
                   <input
                     type="text"
                     placeholder="Description"
                     {...register(`lineItems.${index}.description`)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input-dark"
                   />
                   {errors.lineItems?.[index]?.description && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-[#F87171]">
                       {errors.lineItems[index]?.description?.message}
                     </p>
                   )}
                 </div>
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <input
                     type="number"
                     step="0.01"
                     placeholder="Qty"
                     {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input-dark"
                   />
                   {errors.lineItems?.[index]?.quantity && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-[#F87171]">
                       {errors.lineItems[index]?.quantity?.message}
                     </p>
                   )}
                 </div>
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <input
                     type="number"
                     step="0.01"
                     placeholder="Unit Price"
                     {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input-dark"
                   />
                   {errors.lineItems?.[index]?.unitPrice && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-[#F87171]">
                       {errors.lineItems[index]?.unitPrice?.message}
                     </p>
                   )}
                 </div>
-                <div className="col-span-1 flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900">
+                <div className="flex items-center justify-between gap-3 md:col-span-2">
+                  <span className="text-sm font-medium tabular-nums" style={{ color: "var(--text-primary)" }}>
                     {formatCurrency(watchedLineItems[index]?.quantity * watchedLineItems[index]?.unitPrice || 0)}
                   </span>
                   {fields.length > 1 && (
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="ml-2 text-red-600 hover:text-red-800"
+                      className="rounded-lg border border-[rgba(239,68,68,0.3)] px-2 py-1 text-[#F87171] transition hover:bg-[rgba(239,68,68,0.15)]"
                     >
                       ×
                     </button>
@@ -367,11 +365,11 @@ export function InvoiceFormPage() {
         </div>
 
         {/* Tax and Notes */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Additional Details</h2>
+        <div className="glass-card p-6">
+          <h2 className="section-heading">Additional Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Tax Rate (%)
               </label>
               <input
@@ -380,48 +378,48 @@ export function InvoiceFormPage() {
                 min="0"
                 max="100"
                 {...register("taxRate", { valueAsNumber: true })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="field-label">
                 Notes / Terms
               </label>
               <textarea
                 {...register("notes")}
                 rows={4}
                 placeholder="Payment terms, notes, or any additional information..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
             </div>
           </div>
         </div>
 
         {/* Totals */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Invoice Total</h2>
-          <div className="space-y-2">
+        <div className="glass-card p-5 text-right">
+          <h2 className="section-heading text-left">Invoice Total</h2>
+          <div className="ml-auto max-w-sm space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">{formatCurrency(subtotal)}</span>
+              <span style={{ color: "var(--text-secondary)" }}>Subtotal:</span>
+              <span className="font-medium tabular-nums">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Tax ({watchedTaxRate}%):</span>
-              <span className="font-medium">{formatCurrency(taxAmount)}</span>
+              <span style={{ color: "var(--text-secondary)" }}>Tax ({watchedTaxRate}%):</span>
+              <span className="font-medium tabular-nums">{formatCurrency(taxAmount)}</span>
             </div>
-            <div className="flex justify-between text-lg font-bold">
+            <div className="flex items-end justify-between border-t pt-4" style={{ borderColor: "var(--border)" }}>
               <span>Total:</span>
-              <span>{formatCurrency(total)}</span>
+              <span className="stat-number text-[var(--accent)]">{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button
             type="button"
             onClick={() => navigate("/invoices")}
-            className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+            variant="secondary"
           >
             Cancel
           </Button>
@@ -429,6 +427,7 @@ export function InvoiceFormPage() {
             type="button"
             onClick={handleSaveAsDraft}
             disabled={loading}
+            variant="secondary"
           >
             {loading ? "Saving..." : "Save as Draft"}
           </Button>
@@ -436,6 +435,7 @@ export function InvoiceFormPage() {
             type="button"
             onClick={handleSaveAndSend}
             disabled={loading}
+            className="sm:min-w-44"
           >
             {loading ? "Saving..." : "Save and Send"}
           </Button>

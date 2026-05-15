@@ -5,24 +5,46 @@ type ToastProps = {
 };
 
 const toneClasses = {
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  error: "border-red-200 bg-red-50 text-red-900",
+  success: "var(--success)",
+  error: "#F87171",
 };
 
 export function Toast({ message, onDismiss, tone = "success" }: ToastProps) {
   return (
-    <div className={`fixed right-6 top-6 z-50 max-w-sm rounded-md border px-4 py-3 shadow-lg ${toneClasses[tone]}`}>
-      <div className="flex items-start gap-3">
-        <p className="text-sm font-medium">{message}</p>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="ml-auto text-lg leading-none opacity-70 hover:opacity-100"
-          aria-label="Dismiss notification"
-        >
-          ×
-        </button>
-      </div>
+    <div
+      className="fixed bottom-6 right-6 z-50 animate-fade-in-up"
+      style={{
+        alignItems: "center",
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
+        borderRadius: 14,
+        boxShadow: "0 0 40px rgba(99,102,241,0.2)",
+        color: "var(--text-primary)",
+        display: "flex",
+        fontSize: 14,
+        fontWeight: 500,
+        gap: 12,
+        maxWidth: 360,
+        padding: "14px 20px",
+      }}
+    >
+      <span style={{ color: toneClasses[tone], fontSize: 18 }}>{tone === "error" ? "!" : "✓"}</span>
+      <span style={{ flex: 1 }}>{message}</span>
+      <button
+        aria-label="Dismiss notification"
+        onClick={onDismiss}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--text-muted)",
+          cursor: "pointer",
+          fontSize: 18,
+          lineHeight: 1,
+        }}
+        type="button"
+      >
+        ×
+      </button>
     </div>
   );
 }

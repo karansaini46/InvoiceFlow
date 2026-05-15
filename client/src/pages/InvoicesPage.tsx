@@ -89,20 +89,20 @@ export function InvoicesPage() {
 
   if (loading) {
     return (
-      <Page title="Invoices" description="Review and manage invoice records.">
+      <Page title="Invoices" description="Manage your invoices.">
         <div className="flex justify-center items-center h-64">
-          <div className="text-gray-500">Loading invoices...</div>
+          <div style={{ color: "var(--text-secondary)" }}>Loading invoices...</div>
         </div>
       </Page>
     );
   }
 
   return (
-    <Page title="Invoices" description="Review and manage invoice records.">
+    <Page title="Invoices" description="Manage your invoices.">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
       {user?.plan === "free" ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.1)] px-4 py-3 text-sm text-[#FCD34D]">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p>You've used {invoices.length}/3 free invoices. Upgrade to PRO for unlimited.</p>
             <PlanBadge plan={user.plan} />
@@ -110,104 +110,116 @@ export function InvoicesPage() {
         </div>
       ) : null}
 
-      <div className="mb-6">
+      <div className="my-6 flex justify-end">
         <Link to="/invoices/new">
-          <Button>Create New Invoice</Button>
+          <Button>
+            <span aria-hidden="true">+</span>
+            Create New Invoice
+          </Button>
         </Link>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800">{error}</div>
-        </div>
+        <div className="error-banner mb-4 text-sm">{error}</div>
       )}
 
       {invoices.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-gray-500 mb-4">No invoices found</div>
+        <div className="glass-card px-6 py-14 text-center">
+          <div
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold"
+            style={{
+              background: "rgba(99,102,241,0.12)",
+              color: "var(--accent)",
+              fontFamily: "Syne, sans-serif",
+            }}
+          >
+            IF
+          </div>
+          <h2 className="mt-5 text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            No invoices yet
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--text-secondary)" }}>
+            Create your first invoice to start tracking receivables and payment status.
+          </p>
           <Link to="/invoices/new">
-            <Button>Create your first invoice</Button>
+            <Button className="mt-6">Create your first invoice</Button>
           </Link>
         </div>
       ) : (
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="glass-card overflow-hidden">
+          <table className="min-w-full">
+            <thead style={{ background: "var(--bg-elevated)" }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Invoice Number
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Client
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Amount
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {invoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <tr key={invoice.id} className="table-row-dark">
+                  <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-[var(--text-primary)]">
                     {invoice.number}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-5 py-4 text-sm text-[var(--text-primary)]">
                     {invoice.clientName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-5 py-4 text-sm tabular-nums text-[var(--text-primary)]">
                     {formatCurrency(Number(invoice.total), invoice.currency)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="whitespace-nowrap px-5 py-4">
                     <StatusBadge status={invoice.status} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-5 py-4 text-sm text-[var(--text-secondary)]">
                     {formatDate(invoice.createdAt)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <Link
-                      to={`/invoices/${invoice.id}`}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      View
-                    </Link>
-                    <Link
-                      to={`/invoices/${invoice.id}/edit`}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(invoice.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                    {invoice.status === "DRAFT" && (
+                  <td className="whitespace-nowrap px-5 py-4 text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link className="action-pill" to={`/invoices/${invoice.id}`}>
+                        View
+                      </Link>
+                      <Link className="action-pill" to={`/invoices/${invoice.id}/edit`}>
+                        Edit
+                      </Link>
                       <button
-                        onClick={() => handleSendInvoice(invoice)}
-                        disabled={sendingInvoiceId === invoice.id}
-                        className="text-green-600 hover:text-green-900 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="action-pill hover:border-[rgba(239,68,68,0.4)] hover:text-[#F87171]"
+                        onClick={() => handleDelete(invoice.id)}
                       >
-                        {sendingInvoiceId === invoice.id ? "Sending..." : "Send"}
+                        Delete
                       </button>
-                    )}
-                    {invoice.status === "SENT" && (
-                      <button
-                        onClick={() => handleStatusUpdate(invoice.id, "PAID")}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Mark Paid
-                      </button>
-                    )}
+                      {invoice.status === "DRAFT" && (
+                        <button
+                          className="glow-btn px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={sendingInvoiceId === invoice.id}
+                          onClick={() => handleSendInvoice(invoice)}
+                        >
+                          {sendingInvoiceId === invoice.id ? "Sending..." : "Send"}
+                        </button>
+                      )}
+                      {invoice.status === "SENT" && (
+                        <button
+                          className="glow-btn px-3 py-1.5 text-xs"
+                          onClick={() => handleStatusUpdate(invoice.id, "PAID")}
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -131,7 +131,7 @@ export function ProposalFormPage() {
   if (loading && isEditing) {
     return (
       <Page title="Edit Proposal" description="Update proposal details and terms.">
-        <div className="flex h-64 items-center justify-center text-gray-500">
+        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
           Loading proposal...
         </div>
       </Page>
@@ -143,59 +143,56 @@ export function ProposalFormPage() {
       title={isEditing ? "Edit Proposal" : "Create Proposal"}
       description="Prepare project scope, pricing, and terms for a client."
     >
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-          {error}
-        </div>
-      )}
+      {error && <div className="error-banner text-sm">{error}</div>}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <section className="rounded-lg bg-white p-6 shadow-sm">
+        <section className="glass-card p-6">
+          <h2 className="section-heading">Proposal Details</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="field-label">
                 Proposal Title *
               </label>
               <input
                 type="text"
                 {...register("title")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.title.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="field-label">
                 Client Name *
               </label>
               <input
                 type="text"
                 {...register("clientName")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.clientName && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientName.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.clientName.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="field-label">
                 Client Email *
               </label>
               <input
                 type="email"
                 {...register("clientEmail")}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input-dark"
               />
               {errors.clientEmail && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientEmail.message}</p>
+                <p className="mt-1 text-sm text-[#F87171]">{errors.clientEmail.message}</p>
               )}
             </div>
           </div>
         </section>
 
-        <section className="rounded-lg bg-white p-6 shadow-sm" data-color-mode="light">
-          <label className="mb-3 block text-sm font-medium text-gray-700">
+        <section className="glass-card p-6" data-color-mode="dark">
+          <label className="section-heading block">
             Proposal Body *
           </label>
           <Controller
@@ -211,15 +208,15 @@ export function ProposalFormPage() {
             )}
           />
           {errors.content && (
-            <p className="mt-2 text-sm text-red-600">{errors.content.message}</p>
+            <p className="mt-2 text-sm text-[#F87171]">{errors.content.message}</p>
           )}
         </section>
 
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-col justify-end gap-3 sm:flex-row">
           <Link to="/proposals">
-            <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">Cancel</Button>
+            <Button variant="secondary">Cancel</Button>
           </Link>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} variant="secondary">
             {loading ? "Saving..." : "Save as Draft"}
           </Button>
           <Button type="button" onClick={handleSaveAndSend} disabled={loading}>

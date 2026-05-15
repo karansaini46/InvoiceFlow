@@ -1,21 +1,31 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "danger";
-};
+type Variant = "primary" | "secondary" | "danger";
 
-export function Button({ className = "", type = "button", variant = "default", ...props }: ButtonProps) {
-  const baseClasses = "inline-flex w-fit items-center justify-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
-  
-  const variantClasses = variant === "danger" 
-    ? "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
-    : "bg-slate-950 text-white hover:bg-slate-800 focus:ring-emerald-600";
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+}
+
+export function Button({
+  variant = "primary",
+  className = "",
+  children,
+  type = "button",
+  ...props
+}: ButtonProps) {
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50";
+  const variants: Record<Variant, string> = {
+    danger:
+      "border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.15)] text-[#F87171] hover:bg-[rgba(239,68,68,0.25)]",
+    primary: "glow-btn",
+    secondary:
+      "border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]",
+  };
 
   return (
-    <button
-      className={`${baseClasses} ${variantClasses} ${className}`}
-      type={type}
-      {...props}
-    />
+    <button className={`${base} ${variants[variant]} ${className}`} type={type} {...props}>
+      {children}
+    </button>
   );
 }

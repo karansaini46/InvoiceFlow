@@ -83,7 +83,7 @@ export function ProposalDetailPage() {
   if (loading) {
     return (
       <Page title="Proposal Detail" description="Review proposal scope, pricing, and terms.">
-        <div className="flex h-64 items-center justify-center text-gray-500">
+        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
           Loading proposal...
         </div>
       </Page>
@@ -93,10 +93,8 @@ export function ProposalDetailPage() {
   if (!proposal) {
     return (
       <Page title="Proposal Detail" description="Review proposal scope, pricing, and terms.">
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-          {error ?? "Proposal not found"}
-        </div>
-        <Link to="/proposals" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+        <div className="error-banner">{error ?? "Proposal not found"}</div>
+        <Link to="/proposals" className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]">
           Back to proposals
         </Link>
       </Page>
@@ -107,22 +105,18 @@ export function ProposalDetailPage() {
     <Page title={proposal.title} description="Review proposal scope, pricing, and terms.">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-          {error}
-        </div>
-      )}
+      {error && <div className="error-banner text-sm">{error}</div>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link to="/proposals" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+        <Link to="/proposals" className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]">
           Back to proposals
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link to={`/proposals/${proposal.id}/edit`}>
-            <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">Edit Proposal</Button>
+            <Button variant="secondary">Edit Proposal</Button>
           </Link>
           {proposal.status === "DRAFT" && (
-            <Button onClick={handleSend} disabled={sendLoading}>
+            <Button onClick={handleSend} disabled={sendLoading} variant="secondary">
               {sendLoading ? "Sending..." : "Send Proposal"}
             </Button>
           )}
@@ -135,17 +129,18 @@ export function ProposalDetailPage() {
         </div>
       </div>
 
-      <section className="rounded-lg bg-white p-6 shadow-sm">
+      <section className="glass-card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{proposal.clientName}</h2>
-            <p className="mt-1 text-sm text-gray-500">{proposal.clientEmail}</p>
+            <p className="field-label">Client</p>
+            <h2 className="text-xl font-semibold text-[var(--text-primary)]">{proposal.clientName}</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">{proposal.clientEmail}</p>
           </div>
           <StatusBadge status={proposal.status} />
         </div>
       </section>
 
-      <section className="rounded-lg bg-white p-6 shadow-sm" data-color-mode="light">
+      <section className="glass-card p-6" data-color-mode="dark">
         <MDEditor.Markdown source={proposal.content} />
       </section>
     </Page>

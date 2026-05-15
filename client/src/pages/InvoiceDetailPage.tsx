@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
@@ -96,9 +97,9 @@ export function InvoiceDetailPage() {
 
   if (loading) {
     return (
-      <Page title="Invoice Detail" description="View invoice status and line items.">
-        <div className="flex h-64 items-center justify-center">
-          <div className="text-gray-500">Loading invoice...</div>
+      <Page title="Invoice" description="Invoice Details.">
+        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
+          Loading invoice...
         </div>
       </Page>
     );
@@ -106,11 +107,9 @@ export function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <Page title="Invoice Detail" description="View invoice status and line items.">
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-          {error ?? "Invoice not found"}
-        </div>
-        <Link to="/invoices" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+      <Page title="Invoice" description="Invoice Details.">
+        <div className="error-banner">{error ?? "Invoice not found"}</div>
+        <Link className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]" to="/invoices">
           Back to invoices
         </Link>
       </Page>
@@ -118,136 +117,151 @@ export function InvoiceDetailPage() {
   }
 
   return (
-    <Page title={invoice.number} description="View invoice status and line items.">
+    <Page title="Invoice" description="Invoice Details.">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
-          {error}
-        </div>
-      )}
+      {error && <div className="error-banner text-sm">{error}</div>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link to="/invoices" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+        <Link className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]" to="/invoices">
           Back to invoices
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link to={`/invoices/${invoice.id}/edit`}>
-            <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">Edit Invoice</Button>
+            <Button variant="secondary">Edit Invoice</Button>
           </Link>
           {invoice.status === "DRAFT" && (
-            <Button onClick={handleSendInvoice} disabled={sendLoading}>
+            <Button disabled={sendLoading} onClick={handleSendInvoice} variant="secondary">
               {sendLoading ? "Sending..." : "Send Invoice"}
             </Button>
           )}
-          <Button onClick={handleDownloadPdf} disabled={downloadLoading}>
+          <Button disabled={downloadLoading} onClick={handleDownloadPdf}>
             {downloadLoading ? "Downloading..." : "Download PDF"}
           </Button>
         </div>
       </div>
 
-      <section className="grid gap-6 md:grid-cols-3">
-        <div className="rounded-lg bg-white p-6 shadow-sm md:col-span-2">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <section className="glass-card p-5 sm:p-8">
+        <div
+          className="flex flex-col gap-6 border-b pb-6 sm:flex-row sm:items-start sm:justify-between"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-xl text-sm font-bold text-white"
+              style={{ background: "var(--accent)", boxShadow: "0 0 24px var(--accent-glow)" }}
+            >
+              IF
+            </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{invoice.clientName}</h2>
-              <p className="mt-1 text-sm text-gray-500">{invoice.clientEmail}</p>
-              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">
-                {invoice.clientAddress}
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                Invoice
               </p>
-            </div>
-            <StatusBadge status={invoice.status} />
-          </div>
-
-          <div className="grid gap-4 border-t border-gray-200 pt-6 sm:grid-cols-3">
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Issue date
-              </div>
-              <div className="mt-1 font-medium text-gray-900">{formatDate(invoice.issueDate)}</div>
-            </div>
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Due date
-              </div>
-              <div className="mt-1 font-medium text-gray-900">{formatDate(invoice.dueDate)}</div>
-            </div>
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Currency
-              </div>
-              <div className="mt-1 font-medium text-gray-900">{invoice.currency}</div>
+              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                {invoice.number}
+              </h2>
             </div>
           </div>
+          <StatusBadge status={invoice.status} />
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-medium text-gray-900">Total</h2>
-          <div className="mt-5 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+        <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="field-label">Client</p>
+            <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              {invoice.clientName}
+            </h3>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {invoice.clientEmail}
+            </p>
+            <p className="mt-3 whitespace-pre-line text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
+              {invoice.clientAddress}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-1">
+            <div>
+              <div className="field-label">Issue date</div>
+              <div className="mt-1 font-medium text-[var(--text-primary)]">{formatDate(invoice.issueDate)}</div>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tax ({invoice.taxRate}%)</span>
-              <span className="font-medium">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
+            <div>
+              <div className="field-label">Due date</div>
+              <div className="mt-1 font-medium text-[var(--text-primary)]">{formatDate(invoice.dueDate)}</div>
             </div>
-            <div className="flex justify-between border-t border-gray-200 pt-3 text-lg font-bold">
-              <span>Total</span>
-              <span>{formatCurrency(invoice.total, invoice.currency)}</span>
+            <div>
+              <div className="field-label">Currency</div>
+              <div className="mt-1 font-medium text-[var(--text-primary)]">{invoice.currency}</div>
             </div>
           </div>
         </div>
-      </section>
 
-      <section className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-medium text-gray-900">Line Items</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Qty
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Unit Price
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {invoice.lineItems.map((item) => (
-                <tr key={item.id}>
-                  <td className="max-w-md px-6 py-4 text-sm text-gray-900">
-                    {item.description}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-700">
-                    {item.quantity}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-700">
-                    {formatCurrency(item.unitPrice, invoice.currency)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium text-gray-900">
-                    {formatCurrency(item.amount, invoice.currency)}
-                  </td>
+        <div className="mt-8 overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)" }}>
+          <div className="border-b px-6 py-4" style={{ borderColor: "var(--border)" }}>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+              Line Items
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead style={{ background: "var(--bg-elevated)" }}>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                    Qty
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                    Unit Price
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                    Amount
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {invoice.lineItems.map((item) => (
+                  <tr className="table-row-dark" key={item.id}>
+                    <td className="max-w-md px-6 py-4 text-sm text-[var(--text-primary)]">
+                      {item.description}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-[var(--text-secondary)]">
+                      {item.quantity}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-[var(--text-secondary)]">
+                      {formatCurrency(item.unitPrice, invoice.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium tabular-nums text-[var(--text-primary)]">
+                      {formatCurrency(item.amount, invoice.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="ml-auto mt-8 max-w-sm space-y-3">
+          <div className="flex justify-between text-sm">
+            <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
+            <span className="font-medium tabular-nums">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: "var(--text-secondary)" }}>Tax ({invoice.taxRate}%)</span>
+            <span className="font-medium tabular-nums">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
+          </div>
+          <div className="flex items-end justify-between border-t pt-4" style={{ borderColor: "var(--border)" }}>
+            <span>Total</span>
+            <span className="stat-number text-[var(--accent)]">
+              {formatCurrency(invoice.total, invoice.currency)}
+            </span>
+          </div>
         </div>
       </section>
 
       {invoice.notes && (
-        <section className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-medium text-gray-900">Notes / Terms</h2>
-          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">
+        <section className="glass-card p-6">
+          <h2 className="section-heading">Notes / Terms</h2>
+          <p className="whitespace-pre-line text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
             {invoice.notes}
           </p>
         </section>

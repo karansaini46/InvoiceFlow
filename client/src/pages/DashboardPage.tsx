@@ -214,7 +214,7 @@ function ViewIcon({ className = "" }: IconProps) {
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />;
+  return <div className={`animate-pulse rounded-md bg-[var(--bg-elevated)] ${className}`} />;
 }
 
 const formatCurrency = (amount: number, currency = "USD") =>
@@ -276,25 +276,25 @@ export function DashboardPage() {
       {
         label: "Total Revenue",
         value: formatCurrency(stats?.totalRevenue ?? 0),
-        accent: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        accent: "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.12)] text-[#34D399]",
         icon: RevenueIcon,
       },
       {
         label: "Outstanding",
         value: formatCurrency(stats?.outstanding ?? 0),
-        accent: "border-sky-200 bg-sky-50 text-sky-700",
+        accent: "border-[rgba(34,211,238,0.28)] bg-[rgba(34,211,238,0.12)] text-[#67E8F9]",
         icon: ClockIcon,
       },
       {
         label: "Overdue",
         value: formatCurrency(stats?.overdue ?? 0),
-        accent: "border-rose-200 bg-rose-50 text-rose-700",
+        accent: "border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.12)] text-[#F87171]",
         icon: AlertIcon,
       },
       {
         label: "Drafts",
         value: String(stats?.draftCount ?? 0),
-        accent: "border-amber-200 bg-amber-50 text-amber-700",
+        accent: "border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] text-[#FCD34D]",
         icon: DraftIcon,
       },
     ],
@@ -334,149 +334,152 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-4 py-6 lg:block">
-        <Link to="/dashboard" className="flex items-center gap-3 px-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-950 text-sm font-semibold text-white">
+    <div className="min-h-screen" style={{ background: "var(--bg-base)" }}>
+      <aside
+        className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r lg:flex"
+        style={{ background: "var(--bg-surface)", borderColor: "var(--border)" }}
+      >
+        <Link className="flex items-center gap-3 px-5 pb-6 pt-7" to="/dashboard">
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white"
+            style={{ background: "var(--accent)", boxShadow: "0 0 20px var(--accent-glow)" }}
+          >
             IF
           </span>
-          <span className="text-lg font-semibold text-slate-950">InvoiceFlow</span>
+          <span
+            className="text-base font-bold tracking-tight"
+            style={{ color: "var(--text-primary)", fontFamily: "Syne, sans-serif" }}
+          >
+            InvoiceFlow
+          </span>
         </Link>
 
-        <nav className="mt-10 flex flex-col gap-1">
+        <nav className="flex-1 space-y-0.5 px-3">
           {navigation.map((item) => {
             const Icon = item.icon;
 
             return (
               <NavLink
+                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                  }`
-                }
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </NavLink>
             );
           })}
         </nav>
-      </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase text-emerald-700">
-                Dashboard
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
-                Financial snapshot
-              </h1>
+        <div className="border-t px-4 pb-6 pt-4" style={{ borderColor: "var(--border)" }}>
+          <div className="mb-3 flex items-center gap-3">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+              style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-cyan))" }}
+            >
+              {initials}
             </div>
-
-            <div className="flex items-center justify-between gap-3 md:justify-end">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-800">
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-950">
-                    {user?.name ?? "User"}
-                  </p>
-                  <p className="truncate text-xs text-slate-500">{user?.email}</p>
-                </div>
-                {user ? <PlanBadge plan={user.plan} /> : null}
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
-              >
-                Logout
-              </button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                {user?.name ?? "User"}
+              </p>
+              <p className="truncate text-xs" style={{ color: "var(--text-muted)" }}>
+                {user?.email}
+              </p>
             </div>
           </div>
+          <div className="mb-3">{user ? <PlanBadge plan={user.plan} /> : null}</div>
+          <button
+            className="w-full rounded-lg px-3 py-2 text-left text-sm transition-colors hover:text-[#F87171]"
+            onClick={handleLogout}
+            style={{ color: "var(--text-secondary)" }}
+            type="button"
+          >
+            Sign out
+          </button>
+        </div>
+      </aside>
 
-          <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
-            {navigation.map((item) => {
-              const Icon = item.icon;
+      <div className="lg:pl-60">
+        <header
+          className="sticky top-0 z-10 border-b px-4 py-5 sm:px-6"
+          style={{
+            backdropFilter: "blur(20px)",
+            background: "rgba(10,10,15,0.85)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--accent)" }}>
+            Dashboard
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <h1
+              className="text-2xl font-bold"
+              style={{ color: "var(--text-primary)", fontFamily: "Syne, sans-serif" }}
+            >
+              Financial snapshot
+            </h1>
+            <nav className="flex gap-2 overflow-x-auto lg:hidden">
+              {navigation.map((item) => {
+                const Icon = item.icon;
 
-              return (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={({ isActive }) =>
-                    `inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${
-                      isActive
-                        ? "bg-slate-950 text-white"
-                        : "bg-slate-100 text-slate-700"
-                    }`
-                  }
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
-          </nav>
+                return (
+                  <NavLink
+                    className={({ isActive }) => `nav-item whitespace-nowrap ${isActive ? "active" : ""}`}
+                    key={item.href}
+                    to={item.href}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
-          {error && (
-            <div className="mb-6 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {error}
-            </div>
-          )}
+        <main className="animate-fade-in-up p-4 sm:p-6">
+          {error && <div className="error-banner mb-6 text-sm">{error}</div>}
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {loading
               ? Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
-                  >
+                  <div className="glass-card p-5" key={index}>
                     <SkeletonBlock className="h-10 w-10" />
                     <SkeletonBlock className="mt-5 h-4 w-28" />
                     <SkeletonBlock className="mt-3 h-8 w-36" />
                   </div>
                 ))
-              : statCards.map((card) => {
+              : statCards.map((card, index) => {
                   const Icon = card.icon;
 
                   return (
                     <article
+                      className={`glass-card glass-card-hover animate-fade-in-up p-5 stagger-${index + 1}`}
                       key={card.label}
-                      className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
                     >
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-md border ${card.accent}`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg border ${card.accent}`}
                       >
                         <Icon className="h-5 w-5" />
                       </div>
-                      <p className="mt-5 text-sm font-medium text-slate-500">
+                      <p className="mt-5 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                         {card.label}
                       </p>
-                      <p className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">
-                        {card.value}
-                      </p>
+                      <p className="stat-number mt-2">{card.value}</p>
                     </article>
                   );
                 })}
           </section>
 
-          <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold tracking-normal text-slate-950">
-                  Monthly revenue
-                </h2>
-                <p className="text-sm text-slate-500">Paid invoices over the last 6 months</p>
-              </div>
+          <section className="glass-card mt-6 p-5">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Monthly revenue
+              </h2>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Paid invoices over the last 6 months
+              </p>
             </div>
 
             <div className="mt-5 h-72 overflow-x-auto">
@@ -489,36 +492,48 @@ export function DashboardPage() {
                   margin={{ bottom: 8, left: 0, right: 16, top: 8 }}
                   width={760}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={10} />
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    axisLine={false}
+                    dataKey="month"
+                    tick={{ fill: "var(--text-muted)" }}
+                    tickLine={false}
+                    tickMargin={10}
+                  />
                   <YAxis
                     axisLine={false}
-                    tickLine={false}
+                    tick={{ fill: "var(--text-muted)" }}
                     tickFormatter={(value) => `$${Number(value) / 1000}k`}
+                    tickLine={false}
                     width={48}
                   />
                   <Tooltip
-                    cursor={{ fill: "#F1F5F9" }}
+                    contentStyle={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      color: "var(--text-primary)",
+                    }}
+                    cursor={{ fill: "rgba(99,102,241,0.08)" }}
                     formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
                   />
-                  <Bar dataKey="total" fill="#0F172A" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total" fill="#6366F1" radius={[6, 6, 0, 0]} />
                 </BarChart>
               )}
             </div>
           </section>
 
-          <section className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="glass-card mt-6 overflow-hidden">
+            <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)" }}>
               <div>
-                <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                   Recent invoices
                 </h2>
-                <p className="text-sm text-slate-500">The 5 most recent invoice records</p>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  The 5 most recent invoice records
+                </p>
               </div>
-              <Link
-                to="/invoices"
-                className="inline-flex w-fit items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
+              <Link className="action-pill w-fit" to="/invoices">
                 View all
               </Link>
             </div>
@@ -526,69 +541,62 @@ export function DashboardPage() {
             {loading ? (
               <div className="space-y-3 p-5">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <SkeletonBlock key={index} className="h-12 w-full" />
+                  <SkeletonBlock className="h-12 w-full" key={index} />
                 ))}
               </div>
             ) : stats && stats.recentInvoices.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
+                <table className="min-w-full">
+                  <thead style={{ background: "var(--bg-elevated)" }}>
                     <tr>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                        Invoice
-                      </th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                        Client
-                      </th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                        Amount
-                      </th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                        Status
-                      </th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                        Date
-                      </th>
-                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">
-                        Actions
-                      </th>
+                      {["Invoice", "Client", "Amount", "Status", "Date", "Actions"].map((label) => (
+                        <th
+                          className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${
+                            label === "Actions" ? "text-right" : "text-left"
+                          }`}
+                          key={label}
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          {label}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
+                  <tbody>
                     {stats.recentInvoices.map((invoice) => (
-                      <tr key={invoice.id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-slate-950">
+                      <tr className="table-row-dark" key={invoice.id}>
+                        <td className="whitespace-nowrap px-5 py-4 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                           {invoice.number}
                         </td>
-                        <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">
+                        <td className="whitespace-nowrap px-5 py-4 text-sm" style={{ color: "var(--text-primary)" }}>
                           {invoice.client}
                         </td>
-                        <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">
+                        <td className="whitespace-nowrap px-5 py-4 text-sm tabular-nums" style={{ color: "var(--text-primary)" }}>
                           {formatCurrency(invoice.amount, invoice.currency)}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4">
                           <StatusBadge status={invoice.status} />
                         </td>
-                        <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">
+                        <td className="whitespace-nowrap px-5 py-4 text-sm" style={{ color: "var(--text-secondary)" }}>
                           {formatDate(invoice.date)}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4">
                           <div className="flex justify-end gap-2">
                             <Link
-                              to={`/invoices/${invoice.id}`}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
-                              title="View invoice"
                               aria-label={`View invoice ${invoice.number}`}
+                              className="icon-action"
+                              title="View invoice"
+                              to={`/invoices/${invoice.id}`}
                             >
                               <ViewIcon className="h-4 w-4" />
                             </Link>
                             <button
-                              type="button"
-                              onClick={() => handleDownloadPdf(invoice.id, invoice.number)}
-                              disabled={downloadingInvoiceId === invoice.id}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                              title="Download PDF"
                               aria-label={`Download PDF for invoice ${invoice.number}`}
+                              className="icon-action disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={downloadingInvoiceId === invoice.id}
+                              onClick={() => handleDownloadPdf(invoice.id, invoice.number)}
+                              title="Download PDF"
+                              type="button"
                             >
                               <DownloadIcon className="h-4 w-4" />
                             </button>
@@ -601,8 +609,10 @@ export function DashboardPage() {
               </div>
             ) : (
               <div className="px-5 py-12 text-center">
-                <p className="text-sm font-medium text-slate-700">No invoices yet</p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  No invoices yet
+                </p>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                   Revenue, outstanding totals, and invoice activity will appear here.
                 </p>
               </div>

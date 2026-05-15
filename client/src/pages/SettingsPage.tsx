@@ -172,120 +172,117 @@ export function SettingsPage() {
   ];
 
   return (
-    <Page title="Settings" description="Manage your business profile, invoice defaults, and account settings.">
-      <div className="max-w-4xl mx-auto">
-        
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+    <Page title="Settings" description="Account settings.">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border p-1.5" style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}>
+          {tabs.map((tab) => (
+            <button
+              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                activeTab === tab.id
+                  ? "bg-[var(--accent)] text-white shadow-[0_0_20px_var(--accent-glow)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              }`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {activeTab === "profile" && (
-          <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Business Information</h2>
-              
+          <form className="space-y-4" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
+            <section className="glass-card p-6">
+              <h2 className="section-heading">Business Information</h2>
+
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
-                  <input
-                    type="text"
-                    {...profileForm.register("businessName")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
+                  <label className="field-label">Business Name</label>
+                  <input className="input-dark" type="text" {...profileForm.register("businessName")} />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Business Phone</label>
-                  <input
-                    type="tel"
-                    {...profileForm.register("businessPhone")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
+                  <label className="field-label">Business Phone</label>
+                  <input className="input-dark" type="tel" {...profileForm.register("businessPhone")} />
                 </div>
               </div>
 
               <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700">Business Address</label>
-                <textarea
-                  rows={3}
-                  {...profileForm.register("businessAddress")}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
+                <label className="field-label">Business Address</label>
+                <textarea className="input-dark" rows={3} {...profileForm.register("businessAddress")} />
               </div>
 
               <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700">Business Website</label>
+                <label className="field-label">Business Website</label>
                 <input
+                  className="input-dark"
+                  placeholder="https://example.com"
                   type="url"
                   {...profileForm.register("businessWebsite")}
-                  placeholder="https://example.com"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 />
               </div>
-            </div>
+            </section>
 
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Logo</h2>
-              
-              <div className="flex items-start space-x-6">
-                <div className="flex-shrink-0">
-                  {(logoPreview || profile?.logoUrl) ? (
+            <section className="glass-card p-6">
+              <h2 className="section-heading">Logo</h2>
+
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                <div className="shrink-0">
+                  {logoPreview || profile?.logoUrl ? (
                     <img
-                      src={logoPreview || profile?.logoUrl}
                       alt="Logo preview"
-                      className="w-24 h-24 rounded-lg object-cover border border-gray-200"
+                      className="h-24 w-24 rounded-2xl border object-cover"
+                      src={logoPreview || profile?.logoUrl}
+                      style={{ borderColor: "var(--border)" }}
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-lg bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">No logo</span>
+                    <div
+                      className="flex h-24 w-24 items-center justify-center rounded-2xl border text-sm"
+                      style={{
+                        background: "var(--bg-elevated)",
+                        borderColor: "var(--border)",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      No logo
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1">
                   <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                      dragActive ? "border-blue-400 bg-blue-50" : "border-gray-300"
-                    }`}
+                    className="rounded-2xl border border-dashed p-6 text-center transition"
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
+                    style={{
+                      background: dragActive ? "rgba(99,102,241,0.12)" : "var(--bg-elevated)",
+                      borderColor: dragActive ? "var(--accent)" : "var(--border-hover)",
+                    }}
                   >
                     <input
-                      type="file"
                       accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleLogoChange(e.target.files[0])}
                       className="hidden"
                       id="logo-upload"
+                      onChange={(e) => e.target.files?.[0] && handleLogoChange(e.target.files[0])}
+                      type="file"
                     />
-                    <label htmlFor="logo-upload" className="cursor-pointer">
-                      <div className="text-gray-600">
+                    <label className="cursor-pointer" htmlFor="logo-upload">
+                      <div style={{ color: "var(--text-secondary)" }}>
                         <p>Drag and drop your logo here, or click to browse</p>
-                        <p className="text-sm text-gray-400 mt-1">PNG, JPG, GIF up to 5MB</p>
+                        <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                          PNG, JPG, GIF up to 5MB
+                        </p>
                       </div>
                     </label>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
+              <Button disabled={loading} type="submit">
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
@@ -293,63 +290,59 @@ export function SettingsPage() {
         )}
 
         {activeTab === "defaults" && (
-          <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Invoice Defaults</h2>
-            
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Default Currency</label>
-                <select
-                  {...profileForm.register("defaultCurrency")}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  {currencies.map((currency) => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.code} ({currency.symbol})
+          <form className="space-y-4" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
+            <section className="glass-card p-6">
+              <h2 className="section-heading">Preferences</h2>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <label className="field-label">Default Currency</label>
+                  <select className="input-dark appearance-none" {...profileForm.register("defaultCurrency")}>
+                    {currencies.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.code} ({currency.symbol})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">Default Tax Rate (%)</label>
+                  <input
+                    className="input-dark"
+                    max="100"
+                    min="0"
+                    step="0.1"
+                    type="number"
+                    {...profileForm.register("defaultTaxRate", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="field-label">Default Payment Terms</label>
+                <select className="input-dark appearance-none" {...profileForm.register("defaultPaymentTerms")}>
+                  {paymentTerms.map((term) => (
+                    <option key={term} value={term}>
+                      {term}
                     </option>
                   ))}
                 </select>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Default Tax Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  {...profileForm.register("defaultTaxRate", { valueAsNumber: true })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+
+              <div className="mt-6">
+                <label className="field-label">Default Notes</label>
+                <textarea
+                  className="input-dark"
+                  placeholder="Thank you for your business."
+                  rows={4}
+                  {...profileForm.register("defaultNotes")}
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Default Payment Terms</label>
-              <select
-                {...profileForm.register("defaultPaymentTerms")}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              >
-                {paymentTerms.map((term) => (
-                  <option key={term} value={term}>
-                    {term}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Default Notes</label>
-              <textarea
-                rows={4}
-                {...profileForm.register("defaultNotes")}
-                placeholder="Thank you for your business."
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
+            </section>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
+              <Button disabled={loading} type="submit">
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
@@ -357,77 +350,61 @@ export function SettingsPage() {
         )}
 
         {activeTab === "account" && (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Change Password</h2>
-              
-              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+          <div className="space-y-4">
+            <section className="glass-card p-6">
+              <h2 className="section-heading">Change Password</h2>
+
+              <form className="space-y-4" onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Current Password</label>
-                  <input
-                    type="password"
-                    {...passwordForm.register("currentPassword")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
+                  <label className="field-label">Current Password</label>
+                  <input className="input-dark" type="password" {...passwordForm.register("currentPassword")} />
                   {passwordForm.formState.errors.currentPassword && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-[#F87171]">
                       {passwordForm.formState.errors.currentPassword.message}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">New Password</label>
-                  <input
-                    type="password"
-                    {...passwordForm.register("newPassword")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
+                  <label className="field-label">New Password</label>
+                  <input className="input-dark" type="password" {...passwordForm.register("newPassword")} />
                   {passwordForm.formState.errors.newPassword && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-[#F87171]">
                       {passwordForm.formState.errors.newPassword.message}
                     </p>
                   )}
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={loading}>
+                  <Button disabled={loading} type="submit">
                     {loading ? "Changing..." : "Change Password"}
                   </Button>
                 </div>
               </form>
-            </div>
+            </section>
 
-            <div className="border-t pt-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Danger Zone</h2>
-              
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-red-800">Delete Account</h3>
-                <p className="mt-1 text-sm text-red-700">
-                  Once you delete your account, there is no going back. Please be certain.
-                </p>
-                <div className="mt-4">
-                  <Button
-                    variant="danger"
-                    onClick={handleDeleteAccount}
-                    disabled={loading}
-                  >
-                    {loading ? "Deleting..." : "Delete Account"}
-                  </Button>
-                </div>
+            <section className="glass-card border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.05)] p-6">
+              <h2 className="section-heading">Danger Zone</h2>
+              <h3 className="text-sm font-medium text-[#F87171]">Delete Account</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Once you delete your account, there is no going back. Please be certain.
+              </p>
+              <div className="mt-4">
+                <Button disabled={loading} onClick={handleDeleteAccount} variant="danger">
+                  {loading ? "Deleting..." : "Delete Account"}
+                </Button>
               </div>
-            </div>
+            </section>
           </div>
         )}
       </div>
-      
-      {/* Render toasts */}
+
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
           message={toast.message}
-          tone={toast.type}
           onDismiss={() => dismissToast(toast.id)}
+          tone={toast.type}
         />
       ))}
     </Page>

@@ -61,98 +61,109 @@ export function RegisterPage() {
   });
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
-      <section className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md flex-col justify-center">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-base)] px-6 py-10">
+      <section className="glass-card relative z-10 w-full max-w-md animate-fade-in-up p-8 sm:p-10">
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white"
+            style={{ background: "var(--accent)", boxShadow: "0 0 24px var(--accent-glow)" }}
+          >
+            IF
+          </span>
+          <span
+            className="text-lg font-bold"
+            style={{ color: "var(--text-primary)", fontFamily: "Syne, sans-serif" }}
+          >
             InvoiceFlow
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-normal">Register</h1>
-          <p className="mt-3 text-base leading-7 text-slate-600">
-            Create a secure account before sending invoices.
+          </span>
+        </div>
+
+        <div className="mt-8">
+          <h1 className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+            Create your account
+          </h1>
+          <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Start sending polished invoices in minutes
           </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={onSubmit}>
           <div>
-            <label className="text-sm font-medium text-slate-800" htmlFor="name">
+            <label className="field-label" htmlFor="name">
               Name
             </label>
             <input
-              className="mt-2 block w-full rounded-md border-slate-300 text-slate-950 shadow-sm focus:border-emerald-600 focus:ring-emerald-600"
+              className="input-dark"
               id="name"
               type="text"
               autoComplete="name"
               {...register("name")}
             />
             {errors.name ? (
-              <p className="mt-2 text-sm text-red-700">{errors.name.message}</p>
+              <p className="mt-2 text-sm text-[#F87171]">{errors.name.message}</p>
             ) : null}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-800" htmlFor="email">
+            <label className="field-label" htmlFor="email">
               Email
             </label>
             <input
-              className="mt-2 block w-full rounded-md border-slate-300 text-slate-950 shadow-sm focus:border-emerald-600 focus:ring-emerald-600"
+              className="input-dark"
               id="email"
               type="email"
               autoComplete="email"
               {...register("email")}
             />
             {errors.email ? (
-              <p className="mt-2 text-sm text-red-700">{errors.email.message}</p>
+              <p className="mt-2 text-sm text-[#F87171]">{errors.email.message}</p>
             ) : null}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-800" htmlFor="password">
+            <label className="field-label" htmlFor="password">
               Password
             </label>
             <input
-              className="mt-2 block w-full rounded-md border-slate-300 text-slate-950 shadow-sm focus:border-emerald-600 focus:ring-emerald-600"
+              className="input-dark"
               id="password"
               type="password"
               autoComplete="new-password"
               {...register("password")}
             />
             {errors.password ? (
-              <p className="mt-2 text-sm text-red-700">{errors.password.message}</p>
+              <p className="mt-2 text-sm text-[#F87171]">{errors.password.message}</p>
             ) : null}
           </div>
 
           <div>
-            <label
-              className="text-sm font-medium text-slate-800"
-              htmlFor="confirmPassword"
-            >
+            <label className="field-label" htmlFor="confirmPassword">
               Confirm password
             </label>
             <input
-              className="mt-2 block w-full rounded-md border-slate-300 text-slate-950 shadow-sm focus:border-emerald-600 focus:ring-emerald-600"
+              className="input-dark"
               id="confirmPassword"
               type="password"
               autoComplete="new-password"
               {...register("confirmPassword")}
             />
             {errors.confirmPassword ? (
-              <p className="mt-2 text-sm text-red-700">
+              <p className="mt-2 text-sm text-[#F87171]">
                 {errors.confirmPassword.message}
               </p>
             ) : null}
           </div>
 
-          {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
+          {formError ? <div className="error-banner text-sm">{formError}</div> : null}
 
           <Button className="w-full" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm" style={{ color: "var(--text-secondary)" }}>
           Already have an account?{" "}
-          <Link className="font-medium text-emerald-700 hover:text-emerald-800" to="/login">
+          <Link className="font-medium text-[var(--accent)] transition hover:text-[#818CF8]" to="/login">
             Login
           </Link>
         </p>

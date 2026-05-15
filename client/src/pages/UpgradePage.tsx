@@ -78,89 +78,102 @@ export function UpgradePage() {
   };
 
   return (
-    <Page title="Upgrade" description="Compare the free plan with the PRO upgrade.">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Free
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-slate-950">FREE</h2>
+    <Page title="Upgrade" description="Go Pro.">
+      <section className="mx-auto max-w-5xl">
+        <div className="mb-8 max-w-3xl">
+          <h2 className="text-3xl font-bold sm:text-5xl" style={{ color: "var(--text-primary)" }}>
+            Unlock the full power of InvoiceFlow
+          </h2>
+          <p className="mt-4 text-base" style={{ color: "var(--text-secondary)" }}>
+            Move beyond the starter limit with unlimited invoicing and the complete workflow surface.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <article className="glass-card glass-card-hover p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+                  Free
+                </p>
+                <h3 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">FREE</h3>
+              </div>
+              <PlanBadge plan="free" />
             </div>
-            <PlanBadge plan="free" />
-          </div>
-          <p className="mt-4 text-3xl font-semibold text-slate-950">$0</p>
-          <p className="mt-2 text-sm text-slate-600">Best for trying the app and small demos.</p>
-          <ul className="mt-5 space-y-3 text-sm text-slate-700">
-            <li>Max 3 invoices</li>
-            <li>Basic invoice features</li>
-            <li>Simple plan visibility in the app</li>
-          </ul>
-        </article>
+            <p className="stat-number mt-6">$0</p>
+            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              Best for trying the app and small demos.
+            </p>
+            <ul className="mt-5 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {["Max 3 invoices", "Basic invoice features", "Simple plan visibility in the app"].map((item) => (
+                <li className="flex items-center gap-3" key={item}>
+                  <span style={{ color: "var(--accent)" }}>→</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
 
-        <article className="rounded-lg border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-                Pro
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-slate-950">PRO</h2>
+          <article className="glass-card relative overflow-hidden border-[var(--accent)] p-6 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+            <div
+              className="absolute inset-x-0 top-0 h-1"
+              style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-cyan))" }}
+            />
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">Pro</p>
+                <h3 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">PRO</h3>
+              </div>
+              <PlanBadge plan="pro" />
             </div>
-            <PlanBadge plan="pro" />
-          </div>
-          <p className="mt-4 text-3xl font-semibold text-slate-950">$29</p>
-          <p className="mt-2 text-sm text-slate-600">One-time dummy upgrade for the demo flow.</p>
-          <ul className="mt-5 space-y-3 text-sm text-slate-700">
-            <li>Unlimited invoices</li>
-            <li>All available features</li>
-            <li>Instant in-app upgrade</li>
-          </ul>
+            <div className="mt-6 flex items-end gap-2">
+              <p className="stat-number text-4xl">$29</p>
+              <span className="pb-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                /month
+              </span>
+            </div>
+            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              One-time dummy upgrade for the demo flow.
+            </p>
+            <ul className="mt-5 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {["Unlimited invoices", "All available features", "Instant in-app upgrade"].map((item) => (
+                <li className="flex items-center gap-3" key={item}>
+                  <span style={{ color: "var(--accent-cyan)" }}>→</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
 
-          <div className="mt-6 space-y-3">
-            {message ? (
-              <div className="rounded-md border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-800">
-                {message}
-              </div>
-            ) : null}
-            {error ? (
-              <div className="rounded-md border border-rose-200 bg-white px-4 py-3 text-sm text-rose-800">
-                {error}
-              </div>
-            ) : null}
+            <div className="mt-6 space-y-3">
+              {message ? (
+                <div className="rounded-xl border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.12)] px-4 py-3 text-sm text-[#34D399]">
+                  {message}
+                </div>
+              ) : null}
+              {error ? <div className="error-banner text-sm">{error}</div> : null}
 
-            {currentPlan === "pro" ? (
-              <div className="rounded-md border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-emerald-800">
-                ✅ You are on the PRO plan
-              </div>
-            ) : (
-              <Button
-                className="w-full"
-                disabled={loading || upgrading}
-                onClick={handleUpgrade}
-                type="button"
-              >
-                {upgrading ? "Upgrading..." : "Upgrade to PRO"}
-              </Button>
-            )}
-          </div>
-        </article>
-      </div>
+              {currentPlan === "pro" ? (
+                <div className="rounded-xl border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.12)] px-4 py-3 text-sm font-medium text-[#34D399]">
+                  You are on the PRO plan
+                </div>
+              ) : (
+                <Button className="w-full py-3" disabled={loading || upgrading} onClick={handleUpgrade} type="button">
+                  {upgrading ? "Upgrading..." : "Upgrade to PRO"}
+                </Button>
+              )}
+            </div>
+          </article>
+        </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          to="/invoices"
-          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          Back to invoices
-        </Link>
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          Back to dashboard
-        </Link>
-      </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link className="action-pill" to="/invoices">
+            Back to invoices
+          </Link>
+          <Link className="action-pill" to="/dashboard">
+            Back to dashboard
+          </Link>
+        </div>
+      </section>
     </Page>
   );
 }
