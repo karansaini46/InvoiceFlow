@@ -1,11 +1,10 @@
 import { isAxiosError } from "axios";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { Button } from "@/components/Button";
 import { PlanBadge } from "@/components/PlanBadge";
-import { Page } from "@/pages/Page";
 import { paymentApi } from "@/lib/api/payment";
+import { Page } from "@/pages/Page";
 import { useAuthStore } from "@/store/auth";
 
 export function UpgradePage() {
@@ -31,7 +30,7 @@ export function UpgradePage() {
 
         setCurrentPlan(status.plan);
         setPlan(status.plan);
-        setMessage(status.plan === "pro" ? "You're already on PRO." : null);
+        setMessage(status.plan === "pro" ? "You're already on Pro." : null);
         setError(null);
       } catch (err) {
         if (!mounted) {
@@ -47,8 +46,7 @@ export function UpgradePage() {
       }
     };
 
-    loadStatus();
-
+    void loadStatus();
     return () => {
       mounted = false;
     };
@@ -63,7 +61,7 @@ export function UpgradePage() {
       const result = await paymentApi.mockUpgrade();
       setCurrentPlan(result.plan);
       setPlan(result.plan);
-      setMessage("🎉 You're now PRO!");
+      setMessage("You're now on Pro.");
     } catch (err) {
       if (isAxiosError<{ message?: string }>(err)) {
         setError(err.response?.data.message ?? "Unable to upgrade plan.");
@@ -78,102 +76,56 @@ export function UpgradePage() {
   };
 
   return (
-    <Page title="Upgrade" description="Go Pro.">
-      <section className="mx-auto max-w-5xl">
-        <div className="mb-8 max-w-3xl">
-          <h2 className="text-3xl font-bold sm:text-5xl" style={{ color: "var(--text-primary)" }}>
-            Unlock the full power of InvoiceFlow
-          </h2>
-          <p className="mt-4 text-base" style={{ color: "var(--text-secondary)" }}>
-            Move beyond the starter limit with unlimited invoicing and the complete workflow surface.
-          </p>
-        </div>
+    <Page title="Upgrade">
+      <div className="grid max-w-4xl gap-4 lg:grid-cols-2">
+        <article className="card p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase text-[var(--text-3)]">Free</span>
+            <PlanBadge plan="free" />
+          </div>
+          <p className="mono mt-2 text-[24px] font-medium text-[var(--text-1)]">$0</p>
+          <p className="mt-1 text-[12px] text-[var(--text-2)]">Get started, no commitment.</p>
+          <ul className="mt-4 space-y-2 text-[12px] text-[var(--text-2)]">
+            {["Up to 3 invoices", "Basic invoice creation", "PDF export"].map((item) => (
+              <li className="flex gap-2" key={item}>
+                <span className="text-[var(--text-3)]">–</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </article>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <article className="glass-card glass-card-hover p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-                  Free
-                </p>
-                <h3 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">FREE</h3>
-              </div>
-              <PlanBadge plan="free" />
-            </div>
-            <p className="stat-number mt-6">$0</p>
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              Best for trying the app and small demos.
-            </p>
-            <ul className="mt-5 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {["Max 3 invoices", "Basic invoice features", "Simple plan visibility in the app"].map((item) => (
-                <li className="flex items-center gap-3" key={item}>
-                  <span style={{ color: "var(--accent)" }}>→</span>
+        <article className="card relative overflow-hidden border-[rgba(79,110,247,0.3)] p-6">
+          <div className="absolute inset-x-0 top-0 h-[3px] bg-[var(--accent)]" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase text-[var(--accent)]">Pro</span>
+            <PlanBadge plan="pro" />
+          </div>
+          <p className="mono mt-2 text-[24px] font-medium text-[var(--text-1)]">$29</p>
+          <p className="mt-1 text-[12px] text-[var(--text-2)]">One-time upgrade for the demo.</p>
+          <ul className="mt-4 space-y-2 text-[12px] text-[var(--text-2)]">
+            {["Unlimited invoices", "Proposals & PDF export", "Priority features", "Instant activation"].map(
+              (item) => (
+                <li className="flex gap-2" key={item}>
+                  <span className="text-[var(--green)]">✓</span>
                   {item}
                 </li>
-              ))}
-            </ul>
-          </article>
+              ),
+            )}
+          </ul>
 
-          <article className="glass-card relative overflow-hidden border-[var(--accent)] p-6 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-            <div
-              className="absolute inset-x-0 top-0 h-1"
-              style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-cyan))" }}
-            />
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">Pro</p>
-                <h3 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">PRO</h3>
-              </div>
-              <PlanBadge plan="pro" />
-            </div>
-            <div className="mt-6 flex items-end gap-2">
-              <p className="stat-number text-4xl">$29</p>
-              <span className="pb-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                /month
-              </span>
-            </div>
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              One-time dummy upgrade for the demo flow.
-            </p>
-            <ul className="mt-5 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {["Unlimited invoices", "All available features", "Instant in-app upgrade"].map((item) => (
-                <li className="flex items-center gap-3" key={item}>
-                  <span style={{ color: "var(--accent-cyan)" }}>→</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
+          {error ? <div className="card error-state mt-5">⚠ {error}</div> : null}
+          {message ? <p className="mt-5 text-[12px] text-[var(--green)]">{message}</p> : null}
 
-            <div className="mt-6 space-y-3">
-              {message ? (
-                <div className="rounded-xl border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.12)] px-4 py-3 text-sm text-[#34D399]">
-                  {message}
-                </div>
-              ) : null}
-              {error ? <div className="error-banner text-sm">{error}</div> : null}
-
-              {currentPlan === "pro" ? (
-                <div className="rounded-xl border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.12)] px-4 py-3 text-sm font-medium text-[#34D399]">
-                  You are on the PRO plan
-                </div>
-              ) : (
-                <Button className="w-full py-3" disabled={loading || upgrading} onClick={handleUpgrade} type="button">
-                  {upgrading ? "Upgrading..." : "Upgrade to PRO"}
-                </Button>
-              )}
-            </div>
-          </article>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link className="action-pill" to="/invoices">
-            Back to invoices
-          </Link>
-          <Link className="action-pill" to="/dashboard">
-            Back to dashboard
-          </Link>
-        </div>
-      </section>
+          {currentPlan === "pro" ? (
+            <p className="mt-5 text-[13px] font-medium text-[var(--green)]">You&apos;re on Pro</p>
+          ) : (
+            <Button className="mt-5 w-full" loading={loading || upgrading} onClick={handleUpgrade} size="lg">
+              Upgrade to Pro
+            </Button>
+          )}
+        </article>
+      </div>
     </Page>
   );
 }

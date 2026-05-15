@@ -1,18 +1,14 @@
-import type { InvoiceStatus, ProposalStatus } from "@/types/invoice";
+type Status = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "ACCEPTED" | "DECLINED";
 
-interface StatusBadgeProps {
-  status: InvoiceStatus | ProposalStatus;
-}
-
-const statusClasses: Record<InvoiceStatus | ProposalStatus, string> = {
-  ACCEPTED: "badge-paid",
-  DECLINED: "badge-overdue",
-  DRAFT: "badge-draft",
-  OVERDUE: "badge-overdue",
-  PAID: "badge-paid",
-  SENT: "badge-sent",
+const map: Record<Status, string> = {
+  ACCEPTED: "badge badge-accepted",
+  DECLINED: "badge badge-declined",
+  DRAFT: "badge badge-draft",
+  OVERDUE: "badge badge-overdue",
+  PAID: "badge badge-paid",
+  SENT: "badge badge-sent",
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  return <span className={statusClasses[status] ?? "badge-draft"}>{status}</span>;
+export function StatusBadge({ status }: { status: string }) {
+  return <span className={map[status as Status] ?? "badge badge-draft"}>{status}</span>;
 }

@@ -1,29 +1,49 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/Button";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
 import { proposalsApi } from "@/lib/api/proposals";
 import { Page } from "@/pages/Page";
-import type { Proposal } from "@/types/invoice";
+import type { Proposal, ProposalStatus } from "@/types/invoice";
+
+type StatusFilter = "ALL" | ProposalStatus;
 
 const formatDate = (date: string) =>
   new Intl.DateTimeFormat("en-US", {
-    month: "short",
     day: "numeric",
+    month: "short",
     year: "numeric",
   }).format(new Date(date));
 
+function EmptyIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="32" viewBox="0 0 24 24" width="32">
+      <path
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
 export function ProposalsListPage() {
+  const navigate = useNavigate();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
 
   useEffect(() => {
-    loadProposals();
+    void loadProposals();
   }, []);
 
   const loadProposals = async () => {
@@ -41,15 +61,15 @@ export function ProposalsListPage() {
   };
 
   const handleDelete = async (proposal: Proposal) => {
-    if (!confirm(`Delete proposal "${proposal.title}"?`)) {
-      return;
-    }
+    const snapshot = proposals;
+    setProposals((items) => items.filter((item) => item.id !== proposal.id));
+    setDeleteTarget(null);
 
     try {
       await proposalsApi.delete(proposal.id);
-      setProposals((items) => items.filter((item) => item.id !== proposal.id));
       setError(null);
     } catch (err) {
+      setProposals(snapshot);
       setError("Failed to delete proposal");
       console.error("Error deleting proposal:", err);
     }
@@ -59,9 +79,7 @@ export function ProposalsListPage() {
     try {
       setSendingId(proposal.id);
       const updatedProposal = await proposalsApi.send(proposal.id);
-      setProposals((items) =>
-        items.map((item) => (item.id === proposal.id ? updatedProposal : item)),
-      );
+      setProposals((items) => items.map((item) => (item.id === proposal.id ? updatedProposal : item)));
       setToast(`Proposal sent to ${proposal.clientEmail}`);
       setError(null);
     } catch (err) {
@@ -72,132 +90,225 @@ export function ProposalsListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Page title="Proposals" description="Create, send, and track project proposals.">
-        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-          Loading proposals...
-        </div>
-      </Page>
-    );
-  }
+  const filtered = useMemo(() => {
+    const query = search.toLowerCase();
+
+    return proposals.filter((proposal) => {
+      const matchStatus = statusFilter === "ALL" || proposal.status === statusFilter;
+      const matchSearch =
+        !query ||
+        proposal.title.toLowerCase().includes(query) ||
+        proposal.clientName.toLowerCase().includes(query);
+      return matchStatus && matchSearch;
+    });
+  }, [proposals, search, statusFilter]);
+
+  const filters: StatusFilter[] = ["ALL", "DRAFT", "SENT", "ACCEPTED", "DECLINED"];
 
   return (
-    <Page title="Proposals" description="Create, send, and track project proposals.">
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+    <Page description="Create, send, and track project proposals" title="Proposals">
+      {toast ? <Toast message={toast} onDismiss={() => setToast(null)} /> : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link to="/dashboard" className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]">
-          Back to dashboard
-        </Link>
-        <Link to="/proposals/new">
-          <Button>Create Proposal</Button>
-        </Link>
-      </div>
-
-      {error && <div className="error-banner text-sm">{error}</div>}
-
-      {proposals.length === 0 ? (
-        <div className="glass-card px-6 py-14 text-center">
-          <div
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold"
-            style={{
-              background: "rgba(99,102,241,0.12)",
-              color: "var(--accent)",
-              fontFamily: "Syne, sans-serif",
-            }}
-          >
-            IF
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              className="input w-full sm:w-[240px]"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search proposals..."
+              value={search}
+            />
+            <div className="flex flex-wrap gap-1">
+              {filters.map((filter) => (
+                <button
+                  className={`btn btn-sm ${statusFilter === filter ? "btn-secondary border-[var(--accent)]" : "btn-ghost"}`}
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  type="button"
+                >
+                  {filter === "ALL" ? "All" : filter[0] + filter.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
           </div>
-          <h2 className="mt-5 text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            No proposals yet
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--text-secondary)" }}>
-            Create a proposal to package scope, pricing, and terms for your next client.
-          </p>
-          <Link to="/proposals/new" className="mt-4 inline-flex">
-            <Button>Create your first proposal</Button>
+          <Link className="btn btn-primary btn-sm" to="/proposals/new">
+            New Proposal
           </Link>
         </div>
-      ) : (
-        <div className="glass-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead style={{ background: "var(--bg-elevated)" }}>
+
+        <p className="text-[11px] text-[var(--text-3)]">
+          Showing {filtered.length} of {proposals.length}
+        </p>
+
+        {error ? (
+          <div className="card error-state flex items-center justify-between gap-3">
+            <span>⚠ {error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => void loadProposals()} type="button">
+              Try again
+            </button>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="card overflow-hidden">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Proposal
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Client
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Status
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Date
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Actions
-                  </th>
+                  <th>Title</th>
+                  <th>Client</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {proposals.map((proposal) => (
-                  <tr key={proposal.id} className="table-row-dark">
-                    <td className="px-5 py-4">
-                      <div className="text-sm font-medium text-[var(--text-primary)]">{proposal.title}</div>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={index}>
+                    <td>
+                      <div className="skeleton h-3 w-28" />
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4">
-                      <div className="text-sm text-[var(--text-primary)]">{proposal.clientName}</div>
-                      <div className="text-sm text-[var(--text-secondary)]">{proposal.clientEmail}</div>
+                    <td>
+                      <div className="skeleton h-3 w-24" />
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4">
-                      <StatusBadge status={proposal.status} />
+                    <td>
+                      <div className="skeleton h-4 w-16" />
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-sm text-[var(--text-secondary)]">
-                      {formatDate(proposal.createdAt)}
+                    <td>
+                      <div className="skeleton h-3 w-20" />
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          to={`/proposals/${proposal.id}`}
-                          className="action-pill"
-                        >
-                          View
-                        </Link>
-                        <Link
-                          to={`/proposals/${proposal.id}/edit`}
-                          className="action-pill"
-                        >
-                          Edit
-                        </Link>
-                        {proposal.status === "DRAFT" && (
-                          <button
-                            type="button"
-                            onClick={() => handleSend(proposal)}
-                            disabled={sendingId === proposal.id}
-                            className="glow-btn px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {sendingId === proposal.id ? "Sending..." : "Send"}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(proposal)}
-                          className="action-pill hover:border-[rgba(239,68,68,0.4)] hover:text-[#F87171]"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                    <td>
+                      <div className="skeleton h-6 w-24" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        ) : proposals.length === 0 ? (
+          <div className="card empty-state">
+            <span className="text-[var(--text-3)]">
+              <EmptyIcon />
+            </span>
+            <h2 className="mt-3 text-sm font-medium text-[var(--text-2)]">No proposals yet</h2>
+            <p className="mt-1 text-xs text-[var(--text-3)]">Create your first proposal to get started.</p>
+            <Link className="btn btn-primary btn-sm mt-4" to="/proposals/new">
+              New Proposal
+            </Link>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="card empty-state">
+            <span className="text-[var(--text-3)]">
+              <EmptyIcon />
+            </span>
+            <h2 className="mt-3 text-sm font-medium text-[var(--text-2)]">
+              No results for &quot;{search}&quot;
+            </h2>
+            <button
+              className="btn btn-ghost btn-sm mt-3"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("ALL");
+              }}
+              type="button"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Client</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((proposal) => (
+                    <tr
+                      data-clickable="true"
+                      key={proposal.id}
+                      onClick={() => navigate(`/proposals/${proposal.id}`)}
+                    >
+                      <td>{proposal.title}</td>
+                      <td>{proposal.clientName}</td>
+                      <td>
+                        <StatusBadge status={proposal.status} />
+                      </td>
+                      <td className="text-[var(--text-2)]">{formatDate(proposal.createdAt)}</td>
+                      <td>
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/proposals/${proposal.id}`);
+                            }}
+                            type="button"
+                          >
+                            View
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/proposals/${proposal.id}/edit`);
+                            }}
+                            type="button"
+                          >
+                            Edit
+                          </button>
+                          {proposal.status === "DRAFT" ? (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              disabled={sendingId === proposal.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleSend(proposal);
+                              }}
+                              type="button"
+                            >
+                              {sendingId === proposal.id ? "Sending..." : "Send"}
+                            </button>
+                          ) : null}
+                          <button
+                            className="btn btn-ghost btn-sm text-[var(--red)]"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setDeleteTarget(proposal);
+                            }}
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <ConfirmModal
+        confirmLabel="Delete"
+        destructive
+        message={`Delete ${deleteTarget?.title ?? "this proposal"}? This cannot be undone.`}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            void handleDelete(deleteTarget);
+          }
+        }}
+        open={Boolean(deleteTarget)}
+        title="Delete proposal"
+      />
     </Page>
   );
 }

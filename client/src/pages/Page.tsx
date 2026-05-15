@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { PlanBadge } from "@/components/PlanBadge";
 import { api } from "@/lib/axios";
@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/auth";
 
 type PageProps = {
   title: string;
-  description: string;
+  description?: string;
   children?: ReactNode;
 };
 
@@ -19,29 +19,29 @@ const nav = [
   },
   {
     href: "/invoices",
-    icon: "M7 3H15L19 7V21H7C5.895 21 5 20.105 5 19V5C5 3.895 5.895 3 7 3ZM14 3V8H19M9 13H15M9 17H13",
+    icon: "M7 3H15L19 7V21H7a2 2 0 01-2-2V5a2 2 0 012-2zm7 0v5h5M9 13h6M9 17h4",
     label: "Invoices",
   },
   {
     href: "/proposals",
-    icon: "M6 4H18C19.105 4 20 4.895 20 6V18C20 19.105 19.105 20 18 20H6C4.895 20 4 19.105 4 18V6C4 4.895 4.895 4 6 4ZM8 9H16M8 13H16M8 17H12",
+    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
     label: "Proposals",
   },
   {
     href: "/settings",
-    icon: "M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z",
+    icon: "M10.3 5A7 7 0 1019 13.7M12 8v4l2 2",
     label: "Settings",
   },
   {
     href: "/upgrade",
-    icon: "M7 7L12 2L17 7M12 2V15",
+    icon: "M5 10l7-7 7 7M12 3v14",
     label: "Upgrade",
   },
 ];
 
 function NavIcon({ d }: { d: string }) {
   return (
-    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24">
+    <svg aria-hidden="true" fill="none" height="15" viewBox="0 0 24 24" width="15">
       <path
         d={d}
         stroke="currentColor"
@@ -53,18 +53,23 @@ function NavIcon({ d }: { d: string }) {
   );
 }
 
+function getInitials(value?: string) {
+  return (
+    value
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U"
+  );
+}
+
 export function Page({ title, description, children }: PageProps) {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
-
-  const initials =
-    (user?.name || user?.email || "U")
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "U";
+  const location = useLocation();
+  const initials = getInitials(user?.name || user?.email);
 
   const handleLogout = async () => {
     try {
@@ -76,30 +81,19 @@ export function Page({ title, description, children }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-base)" }}>
-      <aside
-        className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r lg:flex"
-        style={{ background: "var(--bg-surface)", borderColor: "var(--border)" }}
-      >
-        <Link className="flex items-center gap-3 px-5 pb-6 pt-7" to="/dashboard">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white"
-            style={{ background: "var(--accent)", boxShadow: "0 0 20px var(--accent-glow)" }}
-          >
+    <div className="min-h-screen bg-[var(--bg-0)]">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[260px] flex-col border-r border-[var(--border)] bg-[var(--bg-1)] lg:flex">
+        <Link className="flex items-center gap-3 px-4 py-5" to="/dashboard">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)] text-xs font-bold text-white">
             IF
-          </div>
-          <span
-            className="text-base font-bold tracking-tight"
-            style={{ color: "var(--text-primary)", fontFamily: "Syne, sans-serif" }}
-          >
-            InvoiceFlow
           </span>
+          <span className="text-[15px] font-semibold text-[var(--text-1)]">InvoiceFlow</span>
         </Link>
 
-        <nav className="flex-1 space-y-0.5 px-3">
+        <nav className="flex-1 space-y-0.5 px-2 py-2">
           {nav.map((item) => (
             <NavLink
-              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
               key={item.href}
               to={item.href}
             >
@@ -109,28 +103,21 @@ export function Page({ title, description, children }: PageProps) {
           ))}
         </nav>
 
-        <div className="border-t px-4 pb-6 pt-4" style={{ borderColor: "var(--border)" }}>
-          <div className="mb-3 flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-              style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-cyan))" }}
-            >
+        <div className="border-t border-[var(--border)] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="mono flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-3)] text-xs text-[var(--text-2)]">
               {initials}
-            </div>
+            </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              <p className="truncate text-[13px] font-medium text-[var(--text-1)]">
                 {user?.name ?? "User"}
               </p>
-              <p className="truncate text-xs" style={{ color: "var(--text-muted)" }}>
-                {user?.email}
-              </p>
+              <p className="truncate text-[11px] text-[var(--text-2)]">{user?.email}</p>
             </div>
           </div>
-          <div className="mb-3">{user ? <PlanBadge plan={user.plan} /> : null}</div>
           <button
-            className="w-full rounded-lg px-3 py-2 text-left text-sm transition-colors hover:text-[#F87171]"
+            className="mt-3 text-[12px] text-[var(--text-3)] transition-colors hover:text-[var(--red)]"
             onClick={handleLogout}
-            style={{ color: "var(--text-secondary)" }}
             type="button"
           >
             Sign out
@@ -138,44 +125,44 @@ export function Page({ title, description, children }: PageProps) {
         </div>
       </aside>
 
-      <div className="lg:pl-60">
-        <header
-          className="sticky top-0 z-10 border-b px-4 py-5 sm:px-6"
-          style={{
-            backdropFilter: "blur(20px)",
-            background: "rgba(10,10,15,0.85)",
-            borderColor: "var(--border)",
-          }}
-        >
-          <p
-            className="mb-1 text-xs font-semibold uppercase tracking-widest"
-            style={{ color: "var(--accent)" }}
-          >
-            {title}
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <h1
-              className="text-2xl font-bold"
-              style={{ color: "var(--text-primary)", fontFamily: "Syne, sans-serif" }}
-            >
-              {description}
-            </h1>
-            <nav className="flex gap-2 overflow-x-auto lg:hidden">
-              {nav.map((item) => (
-                <NavLink
-                  className={({ isActive }) => `nav-item whitespace-nowrap ${isActive ? "active" : ""}`}
-                  key={item.href}
-                  to={item.href}
-                >
-                  <NavIcon d={item.icon} />
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
+      <div className="lg:pl-[260px]">
+        <header className="sticky top-0 z-10 hidden h-[52px] items-center justify-between border-b border-[var(--border)] bg-[rgba(8,9,12,0.9)] px-6 backdrop-blur-md lg:flex">
+          <div className="flex min-w-0 items-center gap-2 text-[12px]">
+            <span className="text-[var(--text-3)]">InvoiceFlow</span>
+            <span className="text-[var(--text-3)]">/</span>
+            <span className="truncate text-[var(--text-2)]">{title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="mono flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-3)] text-xs text-[var(--text-2)]">
+              {initials}
+            </span>
+            {user ? <PlanBadge plan={user.plan} /> : null}
           </div>
         </header>
 
-        <main className="animate-fade-in-up p-4 sm:p-6">{children}</main>
+        <div className="flex h-[52px] items-center justify-between border-b border-[var(--border)] px-4 lg:hidden">
+          <Link className="flex items-center gap-2" to="/dashboard">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)] text-xs font-bold text-white">
+              IF
+            </span>
+            <span className="text-sm font-semibold">InvoiceFlow</span>
+          </Link>
+          <button aria-label="Open menu" className="btn btn-ghost btn-sm" type="button">
+            <span aria-hidden="true">☰</span>
+          </button>
+        </div>
+
+        <main className="p-4 sm:p-6">
+          <div className="page-enter space-y-5" key={location.pathname}>
+            {description ? (
+              <div>
+                <h1 className="text-[18px] font-semibold text-[var(--text-1)]">{title}</h1>
+                <p className="mt-1 text-[12px] text-[var(--text-2)]">{description}</p>
+              </div>
+            ) : null}
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
