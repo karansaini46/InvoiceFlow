@@ -14,7 +14,8 @@ const getRequiredEnv = (name: string) => {
   const value = process.env[name];
 
   if (!value) {
-    throw new Error(`${name} is required.`);
+    console.error("[EMAIL CONFIG]", `${name} is required.`);
+    throw new HttpError(503, "Email service is not configured");
   }
 
   return value;
@@ -24,7 +25,8 @@ const getSmtpPort = () => {
   const port = Number(getRequiredEnv("SMTP_PORT"));
 
   if (!Number.isInteger(port) || port <= 0) {
-    throw new Error("SMTP_PORT must be a valid port number.");
+    console.error("[EMAIL CONFIG]", "SMTP_PORT must be a valid port number.");
+    throw new HttpError(503, "Email service is not configured");
   }
 
   return port;
@@ -157,31 +159,37 @@ export const sendInvoiceEmail = async (invoiceId: string, userId: string) => {
   const publicUrl = getPublicInvoiceUrl(invoice.id);
   const amountDue = formatInvoiceCurrency(invoice.total, invoice.currency);
   const dueDate = formatInvoiceDate(invoice.dueDate);
+  const transporter = getTransporter();
   const [pdfBuffer, filename] = await Promise.all([
     generateInvoicePDF(invoice.id, userId),
     getInvoicePdfFilename(invoice.id, userId),
   ]);
 
-  await getTransporter().sendMail({
-    from: process.env.SMTP_FROM ?? getRequiredEnv("SMTP_USER"),
-    to: invoice.clientEmail,
-    replyTo: invoice.user.email,
-    subject: `Invoice ${invoice.number} from ${invoice.user.name}`,
-    html: renderEmailHtml(invoice, publicUrl),
-    text: [
-      `Invoice ${invoice.number} from ${invoice.user.name}`,
-      `Amount due: ${amountDue}`,
-      `Due date: ${dueDate}`,
-      `View invoice: ${publicUrl}`,
-    ].join("\n"),
-    attachments: [
-      {
-        filename,
-        content: pdfBuffer,
-        contentType: "application/pdf",
-      },
-    ],
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM ?? getRequiredEnv("SMTP_USER"),
+      to: invoice.clientEmail,
+      replyTo: invoice.user.email,
+      subject: `Invoice ${invoice.number} from ${invoice.user.name}`,
+      html: renderEmailHtml(invoice, publicUrl),
+      text: [
+        `Invoice ${invoice.number} from ${invoice.user.name}`,
+        `Amount due: ${amountDue}`,
+        `Due date: ${dueDate}`,
+        `View invoice: ${publicUrl}`,
+      ].join("\n"),
+      attachments: [
+        {
+          filename,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("[EMAIL SEND ERROR]", error);
+    throw new HttpError(502, "Unable to send email right now");
+  }
 
   return {
     clientEmail: invoice.clientEmail,
@@ -244,19 +252,25 @@ export const sendProposalEmail = async (proposalId: string, userId: string) => {
   }
 
   const publicUrl = getPublicProposalUrl(proposal.id);
+  const transporter = getTransporter();
 
-  await getTransporter().sendMail({
-    from: process.env.SMTP_FROM ?? getRequiredEnv("SMTP_USER"),
-    to: proposal.clientEmail,
-    replyTo: proposal.user.email,
-    subject: `${proposal.title} from ${proposal.user.name}`,
-    html: renderProposalEmailHtml(proposal, publicUrl),
-    text: [
-      `${proposal.title} from ${proposal.user.name}`,
-      `Client: ${proposal.clientName}`,
-      `View proposal: ${publicUrl}`,
-    ].join("\n"),
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM ?? getRequiredEnv("SMTP_USER"),
+      to: proposal.clientEmail,
+      replyTo: proposal.user.email,
+      subject: `${proposal.title} from ${proposal.user.name}`,
+      html: renderProposalEmailHtml(proposal, publicUrl),
+      text: [
+        `${proposal.title} from ${proposal.user.name}`,
+        `Client: ${proposal.clientName}`,
+        `View proposal: ${publicUrl}`,
+      ].join("\n"),
+    });
+  } catch (error) {
+    console.error("[EMAIL SEND ERROR]", error);
+    throw new HttpError(502, "Unable to send email right now");
+  }
 
   return {
     clientEmail: proposal.clientEmail,

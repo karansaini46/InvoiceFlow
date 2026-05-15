@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
 import { proposalsApi } from "@/lib/api/proposals";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { Page } from "@/pages/Page";
 import type { Proposal } from "@/types/invoice";
 
@@ -64,9 +65,9 @@ export function ProposalsListPage() {
       );
       setToast(`Proposal sent to ${proposal.clientEmail}`);
       setError(null);
-    } catch (err) {
-      setError("Failed to send proposal");
-      console.error("Error sending proposal:", err);
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to send proposal"));
+      console.error("Error sending proposal:", error);
     } finally {
       setSendingId(null);
     }

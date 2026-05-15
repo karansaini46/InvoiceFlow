@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import { testApp, testAccessToken, testUserId, prisma } from './setup';
 
@@ -355,6 +355,78 @@ describe('Invoice Endpoints', () => {
       expect(response.headers['content-disposition']).toContain('invoice-INV-006.pdf');
       expect(Buffer.isBuffer(response.body)).toBe(true);
       expect(response.body.subarray(0, 4).toString()).toBe('%PDF');
+    });
+  });
+
+  describe('POST /invoices/:id/send', () => {
+    const smtpEnvNames = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'] as const;
+    let previousSmtpEnv: Record<(typeof smtpEnvNames)[number], string | undefined>;
+
+    beforeEach(async () => {
+      previousSmtpEnv = {
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PORT: process.env.SMTP_PORT,
+        SMTP_USER: process.env.SMTP_USER,
+        SMTP_PASS: process.env.SMTP_PASS,
+      };
+
+      for (const name of smtpEnvNames) {
+        delete process.env[name];
+      }
+
+      const invoice = await prisma.invoice.create({
+        data: {
+          number: 'INV-007',
+          userId: testUserId,
+          clientName: 'Email Test Client',
+          clientEmail: 'email@example.com',
+          clientAddress: '123 Email St',
+          issueDate: new Date(),
+          dueDate: new Date(),
+          status: 'DRAFT',
+          currency: 'USD',
+          notes: '',
+          subtotal: 100,
+          taxRate: 10,
+          taxAmount: 10,
+          total: 110,
+          lineItems: {
+            create: {
+              description: 'Email Test Item',
+              quantity: 1,
+              unitPrice: 100,
+              amount: 100,
+            }
+          }
+        }
+      });
+      userInvoiceId = invoice.id;
+    });
+
+    afterEach(() => {
+      for (const name of smtpEnvNames) {
+        const value = previousSmtpEnv[name];
+
+        if (value === undefined) {
+          delete process.env[name];
+        } else {
+          process.env[name] = value;
+        }
+      }
+    });
+
+    it('should return a clear error when SMTP is not configured', async () => {
+      const response = await request(testApp)
+        .post(`/invoices/${userInvoiceId}/send`)
+        .set('Authorization', `Bearer ${testAccessToken}`)
+        .expect(503);
+
+      expect(response.body.message).toBe('Email service is not configured');
+
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: userInvoiceId },
+      });
+      expect(invoice?.status).toBe('DRAFT');
     });
   });
 
