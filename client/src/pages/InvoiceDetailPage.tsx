@@ -7,6 +7,11 @@ import { Toast } from "@/components/Toast";
 import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
 import { invoicesApi } from "@/lib/api/invoices";
 import { getApiErrorMessage } from "@/lib/apiErrors";
+import {
+  downloadBlobAsFile,
+  getInvoicePdfFilename,
+  openInvoiceInGmail,
+} from "@/lib/gmail";
 import { Page } from "@/pages/Page";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
@@ -81,7 +86,7 @@ export function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
-  const [sendLoading, setSendLoading] = useState(false);
+  const [gmailLoading, setGmailLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -140,14 +145,7 @@ export function InvoiceDetailPage() {
     try {
       setDownloadLoading(true);
       const blob = await invoicesApi.downloadPdf(invoice.id);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `invoice-${invoice.number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      downloadBlobAsFile(blob, getInvoicePdfFilename(invoice.number));
       setDownloaded(true);
       downloadedTimer.current = window.setTimeout(() => setDownloaded(false), 2000);
     } catch (err) {
@@ -158,22 +156,23 @@ export function InvoiceDetailPage() {
     }
   };
 
-  const handleSendInvoice = async () => {
+  const handleOpenInGmail = async () => {
     if (!invoice) {
       return;
     }
 
     try {
-      setSendLoading(true);
-      const updatedInvoice = await invoicesApi.send(invoice.id);
-      setInvoice(updatedInvoice);
-      setToast(`Invoice sent to ${invoice.clientEmail}`);
+      setGmailLoading(true);
+      openInvoiceInGmail(invoice);
+      const blob = await invoicesApi.downloadPdf(invoice.id);
+      downloadBlobAsFile(blob, getInvoicePdfFilename(invoice.number));
+      setToast("Gmail opened with the client email filled. Attach the downloaded PDF before sending.");
       setError(null);
     } catch (error) {
-      setError(getApiErrorMessage(error, "Failed to send invoice"));
-      console.error("Error sending invoice:", error);
+      setError(getApiErrorMessage(error, "Failed to prepare invoice for Gmail"));
+      console.error("Error preparing invoice for Gmail:", error);
     } finally {
-      setSendLoading(false);
+      setGmailLoading(false);
     }
   };
 
@@ -195,7 +194,7 @@ export function InvoiceDetailPage() {
       }
 
       if (event.key.toLowerCase() === "s" && invoice?.status === "DRAFT") {
-        void handleSendInvoice();
+        void handleOpenInGmail();
       }
 
       if (event.key === "Escape" || event.key === "Backspace") {
@@ -267,8 +266,8 @@ export function InvoiceDetailPage() {
             Edit
           </Button>
           {invoice.status === "DRAFT" ? (
-            <Button loading={sendLoading} onClick={() => void handleSendInvoice()} size="sm">
-              Send Invoice
+            <Button loading={gmailLoading} onClick={() => void handleOpenInGmail()} size="sm">
+              Open in Gmail
             </Button>
           ) : null}
           <Button loading={downloadLoading} onClick={() => void handleDownloadPdf()} size="sm" variant="secondary">
