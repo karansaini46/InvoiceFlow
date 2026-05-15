@@ -87,6 +87,7 @@ export function InvoiceDetailPage() {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [gmailLoading, setGmailLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState<InvoiceStatus | null>(null);
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +174,25 @@ export function InvoiceDetailPage() {
       console.error("Error preparing invoice for Gmail:", error);
     } finally {
       setGmailLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (status: Extract<InvoiceStatus, "SENT" | "PAID">) => {
+    if (!invoice) {
+      return;
+    }
+
+    try {
+      setStatusLoading(status);
+      const updatedInvoice = await invoicesApi.updateStatus(invoice.id, status);
+      setInvoice(updatedInvoice);
+      setToast(status === "SENT" ? "Invoice marked as sent." : "Invoice marked as paid.");
+      setError(null);
+    } catch (error) {
+      setError(getApiErrorMessage(error, `Failed to mark invoice as ${status.toLowerCase()}`));
+      console.error("Error updating invoice status:", error);
+    } finally {
+      setStatusLoading(null);
     }
   };
 
@@ -268,6 +288,26 @@ export function InvoiceDetailPage() {
           {invoice.status === "DRAFT" ? (
             <Button loading={gmailLoading} onClick={() => void handleOpenInGmail()} size="sm">
               Open in Gmail
+            </Button>
+          ) : null}
+          {invoice.status === "DRAFT" ? (
+            <Button
+              loading={statusLoading === "SENT"}
+              onClick={() => void handleStatusUpdate("SENT")}
+              size="sm"
+              variant="secondary"
+            >
+              Mark as sent
+            </Button>
+          ) : null}
+          {invoice.status === "SENT" || invoice.status === "OVERDUE" ? (
+            <Button
+              loading={statusLoading === "PAID"}
+              onClick={() => void handleStatusUpdate("PAID")}
+              size="sm"
+              variant="secondary"
+            >
+              Mark as paid
             </Button>
           ) : null}
           <Button loading={downloadLoading} onClick={() => void handleDownloadPdf()} size="sm" variant="secondary">
