@@ -10,6 +10,7 @@ import helmet from "helmet";
 import "../src/config/env";
 import { corsOptions } from "../src/config/cors";
 import { errorHandler } from "../src/middleware/errorHandler";
+import { aiRouter } from "../src/routes/ai";
 import { authRouter } from "../src/routes/auth";
 import { dashboardRouter } from "../src/routes/dashboard";
 import { healthRouter } from "../src/routes/health";
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 app.use("/auth", authRouter);
+app.use("/ai", aiRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);
@@ -54,6 +56,7 @@ let testUserIdInternal: string;
 let testAccessTokenInternal: string;
 
 beforeAll(async () => {
+  await prisma.aiUsageLog.deleteMany();
   await prisma.lineItem.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.proposal.deleteMany();

@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
 import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
+import { useInvoiceAnalysis, usePaymentReminder } from "@/hooks/useAI";
 import { invoicesApi } from "@/lib/api/invoices";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import {
@@ -99,6 +100,18 @@ export function InvoiceDetailPage() {
     done: finishLoadingBar,
     start: startLoadingBar,
   } = useLoadingBar();
+  const {
+    analyze,
+    error: analysisError,
+    loading: analysisLoading,
+    result: analysis,
+  } = useInvoiceAnalysis();
+  const {
+    error: reminderError,
+    generate: generateReminder,
+    loading: reminderLoading,
+    reminder,
+  } = usePaymentReminder();
 
   useEffect(() => {
     if (!id) {
@@ -109,6 +122,16 @@ export function InvoiceDetailPage() {
 
     void loadInvoice(id);
   }, [id]);
+
+  useEffect(() => {
+    if (!invoice) {
+      return;
+    }
+
+    void analyze(invoice.id).catch((err) => {
+      console.error("Error analyzing invoice:", err);
+    });
+  }, [analyze, invoice]);
 
   useEffect(
     () => () => {
@@ -239,7 +262,24 @@ export function InvoiceDetailPage() {
     copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
   };
 
+  const handleGenerateReminder = async () => {
+    if (!invoice) {
+      return;
+    }
+
+    try {
+      await generateReminder(invoice.id);
+      setToast("Reminder drafted.");
+      setError(null);
+    } catch (err) {
+      console.error("Error generating payment reminder:", err);
+    }
+  };
+
   const pageTitle = useMemo(() => invoice?.number ?? "Invoice", [invoice]);
+  const isReminderAvailable =
+    invoice?.status === "OVERDUE" ||
+    (invoice?.status !== "PAID" && invoice ? new Date(invoice.dueDate) < new Date() : false);
 
   if (loading) {
     return (
@@ -414,6 +454,103 @@ export function InvoiceDetailPage() {
           </div>
         </aside>
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <article className="card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[11px] uppercase tracking-wide text-[var(--text-2)]">AI invoice analysis</h2>
+            {analysis ? (
+              <span
+                className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase"
+                style={{
+                  background:
+                    analysis.risk_level === "high"
+                      ? "var(--red-dim)"
+                      : analysis.risk_level === "medium"
+                        ? "var(--amber-dim)"
+                        : "var(--green-dim)",
+                  color:
+                    analysis.risk_level === "high"
+                      ? "var(--red)"
+                      : analysis.risk_level === "medium"
+                        ? "var(--amber)"
+                        : "var(--green)",
+                }}
+              >
+                {analysis.risk_level} risk
+              </span>
+            ) : null}
+          </div>
+
+          {analysisLoading ? (
+            <div className="mt-4 space-y-3">
+              <SkeletonBlock className="h-3 w-5/6" />
+              <SkeletonBlock className="h-3 w-3/4" />
+              <SkeletonBlock className="h-3 w-2/3" />
+            </div>
+          ) : analysis ? (
+            <>
+              <p className="mt-4 text-[13px] leading-6 text-[var(--text-1)]">{analysis.summary}</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] uppercase text-[var(--text-3)]">Issues</p>
+                  <ul className="mt-2 space-y-2 text-[12px] text-[var(--text-2)]">
+                    {(analysis.issues.length ? analysis.issues : ["No obvious issues detected."]).map((issue) => (
+                      <li key={issue}>• {issue}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase text-[var(--text-3)]">Suggestions</p>
+                  <ul className="mt-2 space-y-2 text-[12px] text-[var(--text-2)]">
+                    {(analysis.suggestions.length ? analysis.suggestions : ["No action needed right now."]).map(
+                      (suggestion) => (
+                        <li key={suggestion}>• {suggestion}</li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-[12px] text-[var(--text-2)]">
+              {analysisError ?? "AI analysis is not available yet."}
+            </p>
+          )}
+        </article>
+
+        <article className="card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[11px] uppercase tracking-wide text-[var(--text-2)]">Payment reminder</h2>
+            {isReminderAvailable ? (
+              <Button loading={reminderLoading} onClick={() => void handleGenerateReminder()} size="sm" variant="secondary">
+                Generate
+              </Button>
+            ) : null}
+          </div>
+
+          {!isReminderAvailable ? (
+            <p className="mt-4 text-[12px] text-[var(--text-2)]">Available once this invoice becomes overdue.</p>
+          ) : reminder ? (
+            <div className="mt-4 space-y-3">
+              <div>
+                <p className="text-[11px] uppercase text-[var(--text-3)]">Subject</p>
+                <p className="mt-1 text-[13px] text-[var(--text-1)]">{reminder.subject}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase text-[var(--text-3)]">Body</p>
+                <p className="mt-1 whitespace-pre-line rounded-md border border-[var(--border)] bg-[var(--bg-2)] p-3 text-[12px] leading-6 text-[var(--text-2)]">
+                  {reminder.body}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-[12px] text-[var(--text-2)]">
+              {reminderError ?? "Generate a tailored reminder when you are ready to follow up."}
+            </p>
+          )}
+        </article>
+      </section>
     </Page>
   );
 }

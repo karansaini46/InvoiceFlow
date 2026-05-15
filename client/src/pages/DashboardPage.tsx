@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { PlanBadge } from "@/components/PlanBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
+import { useCashFlowInsights } from "@/hooks/useAI";
 import { dashboardApi, type DashboardStats } from "@/lib/api/dashboard";
 import { invoicesApi } from "@/lib/api/invoices";
 import { api } from "@/lib/axios";
@@ -184,6 +185,12 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
   const {
+    data: cashFlowInsights,
+    error: cashFlowInsightsError,
+    fetch: fetchCashFlowInsights,
+    loading: cashFlowInsightsLoading,
+  } = useCashFlowInsights();
+  const {
     active: loadingBarActive,
     complete: loadingBarComplete,
     done: finishLoadingBar,
@@ -221,6 +228,12 @@ export function DashboardPage() {
       mounted = false;
     };
   }, [finishLoadingBar, startLoadingBar]);
+
+  useEffect(() => {
+    void fetchCashFlowInsights().catch((err) => {
+      console.error("Error loading cash-flow insights:", err);
+    });
+  }, [fetchCashFlowInsights]);
 
   const initials = useMemo(() => getInitials(user?.name || user?.email), [user]);
   const hour = new Date().getHours();
@@ -420,6 +433,49 @@ export function DashboardPage() {
                 View All Invoices
               </Link>
             </div>
+
+            <section className="card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[13px] font-medium text-[var(--text-1)]">AI cash flow insights</h2>
+                  <p className="mt-1 text-[11px] text-[var(--text-3)]">Last 90 days, translated into decisions.</p>
+                </div>
+                {cashFlowInsights ? (
+                  <div className="text-right">
+                    <p className="text-[11px] uppercase text-[var(--text-3)]">Next 30 days</p>
+                    <p className="mono mt-1 text-[18px] text-[var(--accent)]">
+                      {formatCurrency(cashFlowInsights.predicted_revenue_30d)}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {cashFlowInsightsLoading ? (
+                <div className="mt-4 space-y-3">
+                  <Skeleton height={14} width="92%" />
+                  <Skeleton height={14} width="84%" />
+                  <Skeleton height={14} width="78%" />
+                </div>
+              ) : cashFlowInsights ? (
+                <>
+                  <p className="mt-4 max-w-4xl text-[13px] leading-6 text-[var(--text-2)]">
+                    {cashFlowInsights.summary}
+                  </p>
+                  <ol className="mt-4 grid gap-2 lg:grid-cols-3">
+                    {cashFlowInsights.insights.map((insight, index) => (
+                      <li className="rounded-md border border-[var(--border)] bg-[var(--bg-2)] p-3 text-[12px] leading-5 text-[var(--text-2)]" key={insight}>
+                        <span className="mono mr-2 text-[var(--accent)]">0{index + 1}</span>
+                        {insight}
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              ) : (
+                <p className="mt-4 text-[12px] text-[var(--text-2)]">
+                  {cashFlowInsightsError ?? "AI insights are not available yet."}
+                </p>
+              )}
+            </section>
 
             <section className="card p-4">
               <div className="flex items-center justify-between">
