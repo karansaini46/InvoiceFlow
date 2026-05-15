@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
 import { invoicesApi } from "@/lib/api/invoices";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { Page } from "@/pages/Page";
 import type { Invoice } from "@/types/invoice";
 
@@ -87,9 +88,9 @@ export function InvoiceDetailPage() {
       setInvoice(updatedInvoice);
       setToast(`Invoice sent to ${invoice.clientEmail}`);
       setError(null);
-    } catch (err) {
-      setError("Failed to send invoice");
-      console.error("Error sending invoice:", err);
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to send invoice"));
+      console.error("Error sending invoice:", error);
     } finally {
       setSendLoading(false);
     }
