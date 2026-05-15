@@ -7,6 +7,7 @@ import type {} from "./types/express";
 import "./config/env";
 import { corsOptions } from "./config/cors";
 import { errorHandler } from "./middleware/errorHandler";
+import { aiRouter } from "./routes/ai";
 import { authRouter } from "./routes/auth";
 import { dashboardRouter } from "./routes/dashboard";
 import { healthRouter } from "./routes/health";
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 app.use("/auth", authRouter);
+app.use("/ai", aiRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/health", healthRouter);
 app.use("/invoices", invoiceRouter);

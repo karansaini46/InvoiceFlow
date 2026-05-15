@@ -26,6 +26,7 @@ The client runs on `http://localhost:5173` and the server runs on `http://localh
 - **Backend (Render)**: Set the service root to `server`, then use `npm install && npm run deploy:build` for the build command and `npm start` for the start command.
 - **Frontend (Vercel)**: Configure environment variables in Vercel dashboard.
 - Keep backend secrets such as `DATABASE_URL`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` in the Render environment.
+- To enable the AI assistant, also set `NVIDIA_API_KEY`, `NVIDIA_BASE_URL`, `LLAMA_MODEL`, `AI_RATE_LIMIT_WINDOW_MS`, `AI_RATE_LIMIT_MAX_REQUESTS`, and `AI_MAX_CONCURRENT_REQUESTS` in the backend environment.
 - Set `CLIENT_URLS` to the allowed frontend origins, for example `https://invoice-flow-client.vercel.app`.
 
 Each platform handles its own environment variables independently for separate deployments.

@@ -241,7 +241,7 @@ export const sendInvoice = async (req: Request, res: Response, next: NextFunctio
 
     const updatedInvoice = await prisma.invoice.update({
       where: { id },
-      data: { status: "SENT" },
+      data: { status: "SENT", paidAt: null },
       include: { lineItems: true },
     });
 
@@ -385,7 +385,10 @@ export const updateInvoiceStatus = async (req: Request, res: Response, next: Nex
 
     const updatedInvoice = await prisma.invoice.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        paidAt: status === "PAID" ? existingInvoice.paidAt ?? new Date() : null,
+      },
       include: { lineItems: true },
     });
 
