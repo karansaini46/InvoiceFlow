@@ -2,7 +2,9 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import { getJwtSecret } from "../config/jwt";
+import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { toPublicPlan } from "../utils/plan";
 
 type AccessTokenPayload = {
   id: string;
@@ -29,7 +31,7 @@ const isAccessTokenPayload = (payload: unknown): payload is AccessTokenPayload =
   typeof payload.email === "string" &&
   typeof payload.plan === "string";
 
-export const authMiddleware = (
+export const authMiddleware = async (
   request: Request,
   _response: Response,
   next: NextFunction,
@@ -41,10 +43,23 @@ export const authMiddleware = (
       throw new HttpError(401, "Authorization token is invalid.");
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+      select: {
+        id: true,
+        email: true,
+        plan: true,
+      },
+    });
+
+    if (!user) {
+      throw new HttpError(401, "Session is no longer valid. Please sign in again.");
+    }
+
     request.user = {
-      id: payload.id,
-      email: payload.email,
-      plan: payload.plan,
+      id: user.id,
+      email: user.email,
+      plan: toPublicPlan(user.plan),
     };
 
     next();
