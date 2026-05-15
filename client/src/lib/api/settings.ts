@@ -1,5 +1,7 @@
 import { api } from "@/lib/axios";
 
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -33,15 +35,28 @@ export interface PasswordChangeData {
   newPassword: string;
 }
 
+const resolveAssetUrl = (url?: string) => {
+  if (!url) {
+    return url;
+  }
+
+  return new URL(url, apiBaseUrl).toString();
+};
+
+const normalizeProfile = (profile: UserProfile): UserProfile => ({
+  ...profile,
+  logoUrl: resolveAssetUrl(profile.logoUrl),
+});
+
 export const settingsApi = {
   getProfile: async (): Promise<UserProfile> => {
     const response = await api.get("/settings/profile");
-    return response.data;
+    return normalizeProfile(response.data);
   },
 
   updateProfile: async (data: ProfileUpdateData): Promise<UserProfile> => {
     const response = await api.patch("/settings/profile", data);
-    return response.data;
+    return normalizeProfile(response.data);
   },
 
   uploadLogo: async (file: File): Promise<{ logoUrl: string }> => {
@@ -53,7 +68,9 @@ export const settingsApi = {
         "Content-Type": "multipart/form-data",
       },
     });
-    return response.data;
+    return {
+      logoUrl: resolveAssetUrl(response.data.logoUrl) ?? "",
+    };
   },
 
   changePassword: async (data: PasswordChangeData): Promise<void> => {

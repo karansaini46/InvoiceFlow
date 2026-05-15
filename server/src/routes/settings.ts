@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import fs from "fs";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import multer from "multer";
@@ -10,11 +11,14 @@ import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
 
 const router = Router();
+const uploadsDirectory = path.join(process.cwd(), "uploads");
+
+fs.mkdirSync(uploadsDirectory, { recursive: true });
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), "uploads"));
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDirectory);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);

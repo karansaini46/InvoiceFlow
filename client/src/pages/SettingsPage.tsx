@@ -85,11 +85,8 @@ export function SettingsPage() {
   const handleProfileSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     setLoading(true);
     try {
-      let logoUrl = profile?.logoUrl;
-      
       if (logoFile) {
-        const uploadResult = await settingsApi.uploadLogo(logoFile);
-        logoUrl = uploadResult.logoUrl;
+        await settingsApi.uploadLogo(logoFile);
       }
 
       const updateData: ProfileUpdateData = {
