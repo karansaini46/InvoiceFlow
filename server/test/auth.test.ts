@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { testApp, testUser, prisma } from './setup';
 
 describe('Auth Endpoints', () => {
@@ -196,6 +197,26 @@ describe('Auth Endpoints', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('plan');
+    });
+
+    it('should reject a validly signed token when the user no longer exists', async () => {
+      const staleAccessToken = jwt.sign(
+        {
+          id: 'deleted-user-id',
+          email: 'deleted@example.com',
+          plan: 'free',
+        },
+        process.env.JWT_SECRET || 'test-secret',
+        { expiresIn: '15m' },
+      );
+
+      const response = await request(testApp)
+        .get('/payment/status')
+        .set('Authorization', `Bearer ${staleAccessToken}`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('sign in again');
     });
   });
 });
