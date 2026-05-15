@@ -3,6 +3,7 @@ node_modules
 dist
 .turbo
 *.db
+server/uploads/
 client/.vite/
 *.tsbuildinfo
 
