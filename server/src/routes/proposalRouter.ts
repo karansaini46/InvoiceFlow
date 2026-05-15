@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 
 import { authMiddleware } from "../middleware/authMiddleware";
 import {
@@ -15,13 +15,13 @@ import {
 
 const router = Router();
 
-const optionalAuth: typeof authMiddleware = (req, res, next) => {
+const optionalAuth: RequestHandler = (req, res, next) => {
   if (!req.header("authorization")) {
     next();
     return;
   }
 
-  authMiddleware(req, res, next);
+  void authMiddleware(req, res, next);
 };
 
 router.get("/:id/view", viewPublicProposal);
