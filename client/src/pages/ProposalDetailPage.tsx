@@ -1,7 +1,7 @@
 import MDEditor from "@uiw/react-md-editor";
 import "@uiw/react-md-editor/markdown-editor.css";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -9,7 +9,45 @@ import { Toast } from "@/components/Toast";
 import { proposalsApi } from "@/lib/api/proposals";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { Page } from "@/pages/Page";
-import type { Proposal } from "@/types/invoice";
+import type { Proposal, ProposalStatus } from "@/types/invoice";
+
+function Timeline({ status }: { status: ProposalStatus }) {
+  const steps = status === "DECLINED" ? ["DRAFT", "SENT", "DECLINED"] : ["DRAFT", "SENT", "ACCEPTED"];
+  const currentIndex = steps.indexOf(status);
+
+  return (
+    <div className="flex items-start">
+      {steps.map((step, index) => {
+        const completed = index < currentIndex;
+        const current = index === currentIndex;
+        const declined = current && step === "DECLINED";
+
+        return (
+          <div className="flex flex-1 items-start" key={step}>
+            <div className="flex flex-col items-center">
+              <span
+                className="mono flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+                style={{
+                  background: completed ? "var(--accent)" : current ? "var(--accent-dim)" : "var(--bg-2)",
+                  border: current
+                    ? `2px solid ${declined ? "var(--red)" : "var(--accent)"}`
+                    : "1px solid transparent",
+                  color: completed ? "#fff" : declined ? "var(--red)" : current ? "var(--accent)" : "var(--text-3)",
+                }}
+              >
+                {index + 1}
+              </span>
+              <span className="mt-2 text-[10px] uppercase tracking-wide text-[var(--text-3)]">
+                {step}
+              </span>
+            </div>
+            {index < steps.length - 1 ? <span className="mt-2.5 h-px flex-1 bg-[var(--border)]" /> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ProposalDetailPage() {
   const navigate = useNavigate();
@@ -28,7 +66,7 @@ export function ProposalDetailPage() {
       return;
     }
 
-    loadProposal(id);
+    void loadProposal(id);
   }, [id]);
 
   const loadProposal = async (proposalId: string) => {
@@ -83,9 +121,15 @@ export function ProposalDetailPage() {
 
   if (loading) {
     return (
-      <Page title="Proposal Detail" description="Review proposal scope, pricing, and terms.">
-        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-          Loading proposal...
+      <Page title="Proposal">
+        <div className="space-y-4">
+          <div className="card space-y-4 p-5">
+            <div className="skeleton h-4 w-28" />
+            <div className="skeleton h-5 w-48" />
+          </div>
+          <div className="card p-5">
+            <div className="skeleton h-40 w-full" />
+          </div>
         </div>
       </Page>
     );
@@ -93,56 +137,62 @@ export function ProposalDetailPage() {
 
   if (!proposal) {
     return (
-      <Page title="Proposal Detail" description="Review proposal scope, pricing, and terms.">
-        <div className="error-banner">{error ?? "Proposal not found"}</div>
-        <Link to="/proposals" className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]">
-          Back to proposals
-        </Link>
+      <Page title="Proposal">
+        <div className="card error-state">⚠ {error ?? "Proposal not found"}</div>
+        <Button onClick={() => navigate("/proposals")} size="sm" variant="ghost">
+          ← Proposals
+        </Button>
       </Page>
     );
   }
 
   return (
-    <Page title={proposal.title} description="Review proposal scope, pricing, and terms.">
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-
-      {error && <div className="error-banner text-sm">{error}</div>}
+    <Page title={proposal.title}>
+      {toast ? <Toast message={toast} onDismiss={() => setToast(null)} /> : null}
+      {error ? <div className="card error-state">⚠ {error}</div> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link to="/proposals" className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]">
-          Back to proposals
-        </Link>
-        <div className="flex flex-wrap gap-3">
-          <Link to={`/proposals/${proposal.id}/edit`}>
-            <Button variant="secondary">Edit Proposal</Button>
-          </Link>
-          {proposal.status === "DRAFT" && (
-            <Button onClick={handleSend} disabled={sendLoading} variant="secondary">
-              {sendLoading ? "Sending..." : "Send Proposal"}
+        <Button onClick={() => navigate("/proposals")} size="sm" variant="ghost">
+          ← Proposals
+        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => navigate(`/proposals/${proposal.id}/edit`)} size="sm" variant="secondary">
+            Edit
+          </Button>
+          {proposal.status === "DRAFT" ? (
+            <Button loading={sendLoading} onClick={() => void handleSend()} size="sm">
+              Send Proposal
             </Button>
-          )}
+          ) : null}
           <Button
-            onClick={handleConvert}
-            disabled={proposal.status !== "ACCEPTED" || convertLoading}
+            disabled={proposal.status !== "ACCEPTED"}
+            loading={convertLoading}
+            onClick={() => void handleConvert()}
+            size="sm"
+            variant="secondary"
           >
-            {convertLoading ? "Converting..." : "Convert to Invoice"}
+            Convert to Invoice
           </Button>
         </div>
       </div>
 
-      <section className="glass-card p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <section className="card p-4">
+        <Timeline status={proposal.status} />
+      </section>
+
+      <section className="card p-5">
+        <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="field-label">Client</p>
-            <h2 className="text-xl font-semibold text-[var(--text-primary)]">{proposal.clientName}</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">{proposal.clientEmail}</p>
+            <p className="text-[11px] uppercase text-[var(--text-3)]">Client</p>
+            <h2 className="mt-1 text-[15px] font-semibold text-[var(--text-1)]">{proposal.clientName}</h2>
+            <p className="mono mt-1 text-[12px] text-[var(--text-2)]">{proposal.clientEmail}</p>
           </div>
           <StatusBadge status={proposal.status} />
         </div>
-      </section>
 
-      <section className="glass-card p-6" data-color-mode="dark">
-        <MDEditor.Markdown source={proposal.content} />
+        <div className="mt-5" data-color-mode="dark">
+          <MDEditor.Markdown source={proposal.content} />
+        </div>
       </section>
     </Page>
   );

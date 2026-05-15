@@ -1,22 +1,98 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
+import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
 import { invoicesApi } from "@/lib/api/invoices";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { Page } from "@/pages/Page";
-import type { Invoice } from "@/types/invoice";
+import type { Invoice, InvoiceStatus } from "@/types/invoice";
+
+const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
+
+const formatCurrency = (amount: number, currency: string) =>
+  new Intl.NumberFormat("en-US", {
+    currency,
+    style: "currency",
+  }).format(amount);
+
+function CopyIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="15" viewBox="0 0 24 24" width="15">
+      <path
+        d="M9 9h10v10H9V9ZM5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`} />;
+}
+
+function Timeline({ status }: { status: InvoiceStatus }) {
+  const steps = status === "OVERDUE" ? ["DRAFT", "SENT", "OVERDUE"] : ["DRAFT", "SENT", "PAID"];
+  const currentIndex = steps.indexOf(status);
+
+  return (
+    <div className="flex items-start">
+      {steps.map((step, index) => {
+        const completed = index < currentIndex;
+        const current = index === currentIndex;
+        const overdue = current && step === "OVERDUE";
+
+        return (
+          <div className="flex flex-1 items-start" key={step}>
+            <div className="flex flex-col items-center">
+              <span
+                className="mono flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+                style={{
+                  background: completed ? "var(--accent)" : current ? "var(--accent-dim)" : "var(--bg-2)",
+                  border: current
+                    ? `2px solid ${overdue ? "var(--red)" : "var(--accent)"}`
+                    : "1px solid transparent",
+                  color: completed ? "#fff" : overdue ? "var(--red)" : current ? "var(--accent)" : "var(--text-3)",
+                }}
+              >
+                {index + 1}
+              </span>
+              <span className="mt-2 text-[10px] uppercase tracking-wide text-[var(--text-3)]">
+                {step}
+              </span>
+            </div>
+            {index < steps.length - 1 ? <span className="mt-2.5 h-px flex-1 bg-[var(--border)]" /> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function InvoiceDetailPage() {
+  const navigate = useNavigate();
   const { id } = useParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const copiedTimer = useRef<number | null>(null);
+  const downloadedTimer = useRef<number | null>(null);
+  const {
+    active: loadingBarActive,
+    complete: loadingBarComplete,
+    done: finishLoadingBar,
+    start: startLoadingBar,
+  } = useLoadingBar();
 
   useEffect(() => {
     if (!id) {
@@ -25,12 +101,25 @@ export function InvoiceDetailPage() {
       return;
     }
 
-    loadInvoice(id);
+    void loadInvoice(id);
   }, [id]);
+
+  useEffect(
+    () => () => {
+      if (copiedTimer.current !== null) {
+        window.clearTimeout(copiedTimer.current);
+      }
+      if (downloadedTimer.current !== null) {
+        window.clearTimeout(downloadedTimer.current);
+      }
+    },
+    [],
+  );
 
   const loadInvoice = async (invoiceId: string) => {
     try {
       setLoading(true);
+      startLoadingBar();
       const data = await invoicesApi.getById(invoiceId);
       setInvoice(data);
       setError(null);
@@ -39,18 +128,8 @@ export function InvoiceDetailPage() {
       console.error("Error loading invoice:", err);
     } finally {
       setLoading(false);
+      finishLoadingBar();
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat("en-US", {
-      currency,
-      style: "currency",
-    }).format(amount);
   };
 
   const handleDownloadPdf = async () => {
@@ -69,6 +148,8 @@ export function InvoiceDetailPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      setDownloaded(true);
+      downloadedTimer.current = window.setTimeout(() => setDownloaded(false), 2000);
     } catch (err) {
       setError("Failed to download invoice PDF");
       console.error("Error downloading invoice PDF:", err);
@@ -96,11 +177,64 @@ export function InvoiceDetailPage() {
     }
   };
 
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+
+      if (tagName === "INPUT" || tagName === "TEXTAREA" || target?.isContentEditable) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "e" && invoice) {
+        navigate(`/invoices/${invoice.id}/edit`);
+      }
+
+      if (event.key.toLowerCase() === "d") {
+        void handleDownloadPdf();
+      }
+
+      if (event.key.toLowerCase() === "s" && invoice?.status === "DRAFT") {
+        void handleSendInvoice();
+      }
+
+      if (event.key === "Escape" || event.key === "Backspace") {
+        navigate("/invoices");
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
+
+  const copyEmail = async () => {
+    if (!invoice) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(invoice.clientEmail);
+    setCopied(true);
+    if (copiedTimer.current !== null) {
+      window.clearTimeout(copiedTimer.current);
+    }
+    copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  const pageTitle = useMemo(() => invoice?.number ?? "Invoice", [invoice]);
+
   if (loading) {
     return (
-      <Page title="Invoice" description="Invoice Details.">
-        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-          Loading invoice...
+      <Page title="Invoice">
+        <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
+        <div className="space-y-4">
+          <div className="card space-y-4 p-5">
+            <SkeletonBlock className="h-4 w-32" />
+            <SkeletonBlock className="h-5 w-48" />
+            <SkeletonBlock className="h-24 w-full" />
+          </div>
+          <div className="card p-5">
+            <SkeletonBlock className="h-40 w-full" />
+          </div>
         </div>
       </Page>
     );
@@ -108,165 +242,139 @@ export function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <Page title="Invoice" description="Invoice Details.">
-        <div className="error-banner">{error ?? "Invoice not found"}</div>
-        <Link className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]" to="/invoices">
-          Back to invoices
-        </Link>
+      <Page title="Invoice">
+        <div className="card error-state">⚠ {error ?? "Invoice not found"}</div>
+        <Button onClick={() => navigate("/invoices")} size="sm" variant="ghost">
+          ← Invoices
+        </Button>
       </Page>
     );
   }
 
   return (
-    <Page title="Invoice" description="Invoice Details.">
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+    <Page title={pageTitle}>
+      <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
+      {toast ? <Toast message={toast} onDismiss={() => setToast(null)} /> : null}
 
-      {error && <div className="error-banner text-sm">{error}</div>}
+      {error ? <div className="card error-state">⚠ {error}</div> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link className="text-sm font-medium text-[var(--accent)] hover:text-[#818CF8]" to="/invoices">
-          Back to invoices
-        </Link>
-        <div className="flex flex-wrap gap-3">
-          <Link to={`/invoices/${invoice.id}/edit`}>
-            <Button variant="secondary">Edit Invoice</Button>
-          </Link>
-          {invoice.status === "DRAFT" && (
-            <Button disabled={sendLoading} onClick={handleSendInvoice} variant="secondary">
-              {sendLoading ? "Sending..." : "Send Invoice"}
+        <Button onClick={() => navigate("/invoices")} size="sm" variant="ghost">
+          ← Invoices
+        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => navigate(`/invoices/${invoice.id}/edit`)} size="sm" variant="secondary">
+            Edit
+          </Button>
+          {invoice.status === "DRAFT" ? (
+            <Button loading={sendLoading} onClick={() => void handleSendInvoice()} size="sm">
+              Send Invoice
             </Button>
-          )}
-          <Button disabled={downloadLoading} onClick={handleDownloadPdf}>
-            {downloadLoading ? "Downloading..." : "Download PDF"}
+          ) : null}
+          <Button loading={downloadLoading} onClick={() => void handleDownloadPdf()} size="sm" variant="secondary">
+            {downloadLoading ? "Preparing..." : downloaded ? "✓ Downloaded" : "Download PDF"}
           </Button>
         </div>
       </div>
 
-      <section className="glass-card p-5 sm:p-8">
-        <div
-          className="flex flex-col gap-6 border-b pb-6 sm:flex-row sm:items-start sm:justify-between"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <div className="flex items-center gap-4">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-sm font-bold text-white"
-              style={{ background: "var(--accent)", boxShadow: "0 0 24px var(--accent-glow)" }}
-            >
-              IF
-            </div>
+      <section className="card p-4">
+        <Timeline status={invoice.status} />
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+        <section className="card p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-                Invoice
+              <h2 className="text-[15px] font-semibold text-[var(--text-1)]">{invoice.clientName}</h2>
+              <div className="group mt-0.5 flex items-center gap-2">
+                <p className="mono text-[12px] text-[var(--text-2)]">{invoice.clientEmail}</p>
+                <button
+                  aria-label="Copy client email"
+                  className="relative text-[var(--text-3)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--text-2)]"
+                  onClick={() => void copyEmail()}
+                  type="button"
+                >
+                  <CopyIcon />
+                  {copied ? <span className="tooltip !opacity-100">Copied!</span> : null}
+                </button>
+              </div>
+              <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[var(--text-2)]">
+                {invoice.clientAddress}
               </p>
-              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                {invoice.number}
-              </h2>
+            </div>
+            <div className="text-left sm:text-right">
+              <StatusBadge status={invoice.status} />
+              <p className="mono mt-2 text-[12px] text-[var(--text-3)]">{invoice.number}</p>
             </div>
           </div>
-          <StatusBadge status={invoice.status} />
-        </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="field-label">Client</p>
-            <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              {invoice.clientName}
-            </h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {invoice.clientEmail}
-            </p>
-            <p className="mt-3 whitespace-pre-line text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-              {invoice.clientAddress}
-            </p>
+          <div className="mt-4 grid gap-4 border-t border-[var(--border)] pt-4 sm:grid-cols-3">
+            {[
+              ["Issue date", formatDate(invoice.issueDate)],
+              ["Due date", formatDate(invoice.dueDate)],
+              ["Currency", invoice.currency],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <p className="text-[11px] uppercase text-[var(--text-3)]">{label}</p>
+                <p className="mt-1 text-[13px] text-[var(--text-1)]">{value}</p>
+              </div>
+            ))}
           </div>
-          <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-1">
-            <div>
-              <div className="field-label">Issue date</div>
-              <div className="mt-1 font-medium text-[var(--text-primary)]">{formatDate(invoice.issueDate)}</div>
-            </div>
-            <div>
-              <div className="field-label">Due date</div>
-              <div className="mt-1 font-medium text-[var(--text-primary)]">{formatDate(invoice.dueDate)}</div>
-            </div>
-            <div>
-              <div className="field-label">Currency</div>
-              <div className="mt-1 font-medium text-[var(--text-primary)]">{invoice.currency}</div>
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)" }}>
-          <div className="border-b px-6 py-4" style={{ borderColor: "var(--border)" }}>
-            <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              Line Items
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead style={{ background: "var(--bg-elevated)" }}>
+          <div className="mt-5 overflow-hidden rounded-md border border-[var(--border)]">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Qty
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Unit Price
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    Amount
-                  </th>
+                  <th>Description</th>
+                  <th className="text-right">Qty</th>
+                  <th className="text-right">Unit Price</th>
+                  <th className="text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.lineItems.map((item) => (
-                  <tr className="table-row-dark" key={item.id}>
-                    <td className="max-w-md px-6 py-4 text-sm text-[var(--text-primary)]">
-                      {item.description}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-[var(--text-secondary)]">
-                      {item.quantity}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-[var(--text-secondary)]">
-                      {formatCurrency(item.unitPrice, invoice.currency)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium tabular-nums text-[var(--text-primary)]">
-                      {formatCurrency(item.amount, invoice.currency)}
-                    </td>
+                  <tr key={item.id}>
+                    <td>{item.description}</td>
+                    <td className="mono text-right">{item.quantity}</td>
+                    <td className="mono text-right">{formatCurrency(item.unitPrice, invoice.currency)}</td>
+                    <td className="mono text-right">{formatCurrency(item.amount, invoice.currency)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
 
-        <div className="ml-auto mt-8 max-w-sm space-y-3">
-          <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
-            <span className="font-medium tabular-nums">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--text-secondary)" }}>Tax ({invoice.taxRate}%)</span>
-            <span className="font-medium tabular-nums">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
-          </div>
-          <div className="flex items-end justify-between border-t pt-4" style={{ borderColor: "var(--border)" }}>
-            <span>Total</span>
-            <span className="stat-number text-[var(--accent)]">
-              {formatCurrency(invoice.total, invoice.currency)}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {invoice.notes && (
-        <section className="glass-card p-6">
-          <h2 className="section-heading">Notes / Terms</h2>
-          <p className="whitespace-pre-line text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-            {invoice.notes}
-          </p>
+          {invoice.notes ? (
+            <div className="mt-5 border-t border-[var(--border)] pt-4">
+              <p className="text-[11px] uppercase text-[var(--text-3)]">Notes</p>
+              <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[var(--text-2)]">
+                {invoice.notes}
+              </p>
+            </div>
+          ) : null}
         </section>
-      )}
+
+        <aside className="card self-start p-4 lg:sticky lg:top-24">
+          <h2 className="mb-3 text-[11px] uppercase tracking-wide text-[var(--text-2)]">Summary</h2>
+          <div className="space-y-3 text-[13px]">
+            <div className="flex justify-between">
+              <span className="text-[var(--text-2)]">Subtotal</span>
+              <span className="mono">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[var(--text-2)]">Tax ({invoice.taxRate}%)</span>
+              <span className="mono">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
+            </div>
+            <div className="divider" />
+            <div className="flex justify-between font-semibold">
+              <span className="text-[var(--text-1)]">Total</span>
+              <span className="mono text-[16px] text-[var(--accent)]">
+                {formatCurrency(invoice.total, invoice.currency)}
+              </span>
+            </div>
+          </div>
+        </aside>
+      </div>
     </Page>
   );
 }

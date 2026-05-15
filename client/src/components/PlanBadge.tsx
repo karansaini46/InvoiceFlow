@@ -1,35 +1,22 @@
-import type { HTMLAttributes } from "react";
-
-import { normalizePlan } from "@/lib/plan";
-
-type PlanBadgeProps = HTMLAttributes<HTMLSpanElement> & {
-  plan: string;
-};
-
-export function PlanBadge({ plan, className = "", ...props }: PlanBadgeProps) {
-  const normalizedPlan = normalizePlan(plan);
-  const isPro = normalizedPlan === "pro";
+export function PlanBadge({ plan }: { plan: string }) {
+  const isPro = plan?.toLowerCase() === "pro";
 
   return (
     <span
-      className={`inline-flex items-center ${className}`}
       style={{
-        background: isPro
-          ? "linear-gradient(135deg, var(--accent), var(--accent-cyan))"
-          : "var(--bg-elevated)",
-        border: isPro ? "none" : "1px solid var(--border)",
-        borderRadius: 20,
-        boxShadow: isPro ? "0 0 12px var(--accent-glow)" : "none",
-        color: isPro ? "white" : "var(--text-muted)",
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.05em",
-        padding: "2px 10px",
+        background: isPro ? "var(--accent-dim)" : "var(--bg-2)",
+        border: `1px solid ${isPro ? "rgba(79,110,247,0.25)" : "var(--border)"}`,
+        borderRadius: 4,
+        color: isPro ? "var(--accent)" : "var(--text-3)",
+        fontFamily: "IBM Plex Mono, monospace",
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: "0.06em",
+        padding: "2px 7px",
         textTransform: "uppercase",
       }}
-      {...props}
     >
-      {isPro ? "✦ PRO" : "FREE"}
+      {isPro ? "PRO" : "FREE"}
     </span>
   );
 }

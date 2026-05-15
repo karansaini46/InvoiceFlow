@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useForm, useFieldArray, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef, useState } from "react";
+import { type SubmitHandler, useFieldArray, useForm } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import { invoicesApi } from "@/lib/api/invoices";
+
 import { Button } from "@/components/Button";
+import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
+import { invoicesApi } from "@/lib/api/invoices";
 import { Page } from "@/pages/Page";
-import type { CreateInvoiceData, UpdateInvoiceData, Invoice } from "@/types/invoice";
+import type { CreateInvoiceData, UpdateInvoiceData } from "@/types/invoice";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -15,18 +17,19 @@ const lineItemSchema = z.object({
 });
 
 const invoiceSchema = z.object({
-  clientName: z.string().min(1, "Client name is required"),
-  clientEmail: z.string().email("Valid email is required"),
   clientAddress: z.string().min(1, "Client address is required"),
-  issueDate: z.string().min(1, "Issue date is required"),
-  dueDate: z.string().min(1, "Due date is required"),
+  clientEmail: z.string().email("Valid email is required"),
+  clientName: z.string().min(1, "Client name is required"),
   currency: z.string().default("USD"),
+  dueDate: z.string().min(1, "Due date is required"),
+  issueDate: z.string().min(1, "Issue date is required"),
+  lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
   notes: z.string().default(""),
   taxRate: z.number().min(0).max(100).default(0),
-  lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
 });
 
 type FormValues = z.input<typeof invoiceSchema>;
+type SaveState = "idle" | "loading" | "success" | "error";
 
 const currencies = [
   { code: "USD", symbol: "$" },
@@ -35,126 +38,171 @@ const currencies = [
   { code: "INR", symbol: "₹" },
 ];
 
+const toDateInput = (date: Date) => date.toISOString().split("T")[0];
+
+const addDays = (dateString: string, days: number) => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + days);
+  return toDateInput(date);
+};
+
 export function InvoiceFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const isDueDateTouched = useRef(false);
+  const saveStateTimer = useRef<number | null>(null);
+  const {
+    active: loadingBarActive,
+    complete: loadingBarComplete,
+    done: finishLoadingBar,
+    start: startLoadingBar,
+  } = useLoadingBar();
 
   const {
+    formState: { errors },
+    handleSubmit,
     register,
     control,
-    handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      clientName: "",
-      clientEmail: "",
       clientAddress: "",
-      issueDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      clientEmail: "",
+      clientName: "",
       currency: "USD",
+      dueDate: toDateInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+      issueDate: toDateInput(new Date()),
+      lineItems: [{ description: "", quantity: 1, unitPrice: 0 }],
       notes: "",
       taxRate: 0,
-      lineItems: [{ description: "", quantity: 1, unitPrice: 0 }],
     },
+    resolver: zodResolver(invoiceSchema),
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { append, fields, remove } = useFieldArray({
     control,
     name: "lineItems",
   });
 
-  const watchedLineItems = watch("lineItems");
-  const watchedTaxRate = watch("taxRate");
+  const values = watch();
+  const issueDate = values.issueDate;
+  const watchedLineItems = values.lineItems;
+  const watchedTaxRate = values.taxRate;
+  const dueDateField = register("dueDate");
 
   useEffect(() => {
-    if (isEditing && id) {
-      loadInvoice(id);
+    if (!isEditing || !id) {
+      return;
     }
-  }, [isEditing, id]);
 
-  const loadInvoice = async (invoiceId: string) => {
-    try {
-      setLoading(true);
-      const invoice = await invoicesApi.getById(invoiceId);
-      
-      setValue("clientName", invoice.clientName);
-      setValue("clientEmail", invoice.clientEmail);
-      setValue("clientAddress", invoice.clientAddress);
-      setValue("issueDate", new Date(invoice.issueDate).toISOString().split('T')[0]);
-      setValue("dueDate", new Date(invoice.dueDate).toISOString().split('T')[0]);
-      setValue("currency", invoice.currency);
-      setValue("notes", invoice.notes);
-      setValue("taxRate", Number(invoice.taxRate));
-      
-      const lineItems = invoice.lineItems.map(item => ({
-        description: item.description,
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-      }));
-      setValue("lineItems", lineItems.length > 0 ? lineItems : [{ description: "", quantity: 1, unitPrice: 0 }]);
-      
-      setError(null);
-    } catch (err) {
-      setError("Failed to load invoice");
-      console.error("Error loading invoice:", err);
-    } finally {
-      setLoading(false);
+    const loadInvoice = async () => {
+      try {
+        setLoading(true);
+        startLoadingBar();
+        const invoice = await invoicesApi.getById(id);
+
+        setValue("clientName", invoice.clientName);
+        setValue("clientEmail", invoice.clientEmail);
+        setValue("clientAddress", invoice.clientAddress);
+        setValue("issueDate", toDateInput(new Date(invoice.issueDate)));
+        setValue("dueDate", toDateInput(new Date(invoice.dueDate)));
+        setValue("currency", invoice.currency);
+        setValue("notes", invoice.notes);
+        setValue("taxRate", Number(invoice.taxRate));
+        setValue(
+          "lineItems",
+          invoice.lineItems.length
+            ? invoice.lineItems.map((item) => ({
+                description: item.description,
+                quantity: Number(item.quantity),
+                unitPrice: Number(item.unitPrice),
+              }))
+            : [{ description: "", quantity: 1, unitPrice: 0 }],
+        );
+        isDueDateTouched.current = true;
+        setError(null);
+      } catch (err) {
+        setError("Failed to load invoice");
+        console.error("Error loading invoice:", err);
+      } finally {
+        setLoading(false);
+        finishLoadingBar();
+      }
+    };
+
+    void loadInvoice();
+  }, [finishLoadingBar, id, isEditing, setValue, startLoadingBar]);
+
+  useEffect(() => {
+    if (!issueDate || isDueDateTouched.current) {
+      return;
     }
-  };
 
-  const calculateTotals = () => {
-    const subtotal = watchedLineItems.reduce(
-      (sum, item) => sum + (item.quantity * item.unitPrice),
-      0
-    );
-    const taxAmount = subtotal * ((watchedTaxRate ?? 0) / 100);
-    const total = subtotal + taxAmount;
-    return { subtotal, taxAmount, total };
-  };
+    setValue("dueDate", addDays(issueDate, 30));
+  }, [issueDate, setValue]);
 
-  const { subtotal, taxAmount, total } = calculateTotals();
+  useEffect(
+    () => () => {
+      if (saveStateTimer.current !== null) {
+        window.clearTimeout(saveStateTimer.current);
+      }
+    },
+    [],
+  );
 
-  const formatCurrency = (amount: number) => {
-    const currency = currencies.find(c => c.code === watch("currency")) || currencies[0];
-    return new Intl.NumberFormat("en-US", {
+  const subtotal = watchedLineItems.reduce(
+    (sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0),
+    0,
+  );
+  const taxAmount = subtotal * ((watchedTaxRate ?? 0) / 100);
+  const total = subtotal + taxAmount;
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      currency: values.currency,
       style: "currency",
-      currency: watch("currency"),
     }).format(amount);
+
+  const showTransientState = (state: SaveState) => {
+    setSaveState(state);
+    if (saveStateTimer.current !== null) {
+      window.clearTimeout(saveStateTimer.current);
+    }
+    saveStateTimer.current = window.setTimeout(() => setSaveState("idle"), 2000);
   };
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     try {
       setLoading(true);
-      
+      setSaveState("loading");
+
       if (isEditing && id) {
         await invoicesApi.update(id, data as UpdateInvoiceData);
       } else {
         await invoicesApi.create(data as CreateInvoiceData);
       }
-      
+
+      showTransientState("success");
       navigate("/invoices");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to save invoice");
+      showTransientState("error");
       console.error("Error saving invoice:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveAsDraft = () => {
-    handleSubmit(onSubmit)();
-  };
-
   const handleSaveAndSend = () => {
     handleSubmit(async (data) => {
       try {
         setLoading(true);
+        setSaveState("loading");
 
         if (isEditing && id) {
           await invoicesApi.update(id, data as UpdateInvoiceData);
@@ -163,9 +211,12 @@ export function InvoiceFormPage() {
           const invoice = await invoicesApi.create(data as CreateInvoiceData);
           await invoicesApi.send(invoice.id);
         }
+
+        showTransientState("success");
         navigate("/invoices");
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to save and send invoice");
+        showTransientState("error");
         console.error("Error saving and sending invoice:", err);
       } finally {
         setLoading(false);
@@ -173,272 +224,285 @@ export function InvoiceFormPage() {
     })();
   };
 
+  const appendItem = () => {
+    append({ description: "", quantity: 1, unitPrice: 0 });
+    window.requestAnimationFrame(() => {
+      document.getElementById(`line-item-description-${fields.length}`)?.focus();
+    });
+  };
+
   if (loading && isEditing) {
     return (
-      <Page title="Invoice" description={isEditing ? "Edit Invoice." : "Create Invoice."}>
-        <div className="flex justify-center items-center h-64">
-          <div style={{ color: "var(--text-secondary)" }}>Loading invoice...</div>
+      <Page title="Edit Invoice">
+        <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
+        <div className="card space-y-4 p-5">
+          <div className="skeleton h-4 w-24" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="skeleton h-9 w-full" />
+            <div className="skeleton h-9 w-full" />
+          </div>
+          <div className="skeleton h-24 w-full" />
         </div>
       </Page>
     );
   }
 
   return (
-    <Page title="Invoice" description={isEditing ? "Edit Invoice." : "Create Invoice."}>
-      {error && <div className="error-banner mb-4 text-sm">{error}</div>}
+    <Page title={isEditing ? "Edit Invoice" : "New Invoice"}>
+      <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Client Information */}
-        <div className="glass-card p-6">
-          <h2 className="section-heading">Client Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="field-label">
-                Client Name *
-              </label>
-              <input
-                type="text"
-                {...register("clientName")}
-                className="input-dark"
-              />
-              {errors.clientName && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.clientName.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="field-label">
-                Client Email *
-              </label>
-              <input
-                type="email"
-                {...register("clientEmail")}
-                className="input-dark"
-              />
-              {errors.clientEmail && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.clientEmail.message}</p>
-              )}
-            </div>
-            <div className="md:col-span-2">
-              <label className="field-label">
-                Client Address *
-              </label>
-              <textarea
-                {...register("clientAddress")}
-                rows={3}
-                className="input-dark"
-              />
-              {errors.clientAddress && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.clientAddress.message}</p>
-              )}
-            </div>
-          </div>
-        </div>
+      {error ? <div className="card error-state">⚠ {error}</div> : null}
 
-        {/* Invoice Details */}
-        <div className="glass-card p-6">
-          <h2 className="section-heading">Invoice Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="field-label">
-                Issue Date *
-              </label>
-              <input
-                type="date"
-                {...register("issueDate")}
-                className="input-dark"
-              />
-              {errors.issueDate && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.issueDate.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="field-label">
-                Due Date *
-              </label>
-              <input
-                type="date"
-                {...register("dueDate")}
-                className="input-dark"
-              />
-              {errors.dueDate && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.dueDate.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="field-label">
-                Currency
-              </label>
-              <select
-                {...register("currency")}
-                className="input-dark appearance-none"
-              >
-                {currencies.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.code} ({currency.symbol})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Line Items */}
-        <div className="glass-card p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-              Line Items
-            </h2>
-            <Button
-              type="button"
-              onClick={() => append({ description: "", quantity: 1, unitPrice: 0 })}
-              variant="secondary"
-            >
-              Add Line Item
-            </Button>
-          </div>
-          
-          {errors.lineItems && (
-            <p className="mb-4 text-sm text-[#F87171]">{errors.lineItems.message}</p>
-          )}
-
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
           <div className="space-y-4">
-            {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-start">
-                <div className="md:col-span-6">
-                  <input
-                    type="text"
-                    placeholder="Description"
-                    {...register(`lineItems.${index}.description`)}
-                    className="input-dark"
-                  />
-                  {errors.lineItems?.[index]?.description && (
-                    <p className="mt-1 text-sm text-[#F87171]">
-                      {errors.lineItems[index]?.description?.message}
-                    </p>
-                  )}
+            <section className="card space-y-4 p-5">
+              <h2 className="text-[14px] font-medium text-[var(--text-1)]">Client</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">Client Name</label>
+                  <input className="input" type="text" {...register("clientName")} />
+                  {errors.clientName ? <p className="field-error">{errors.clientName.message}</p> : null}
                 </div>
-                <div className="md:col-span-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Qty"
-                    {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
-                    className="input-dark"
-                  />
-                  {errors.lineItems?.[index]?.quantity && (
-                    <p className="mt-1 text-sm text-[#F87171]">
-                      {errors.lineItems[index]?.quantity?.message}
-                    </p>
-                  )}
+                <div>
+                  <label className="label">Client Email</label>
+                  <input className="input" type="email" {...register("clientEmail")} />
+                  {errors.clientEmail ? <p className="field-error">{errors.clientEmail.message}</p> : null}
                 </div>
-                <div className="md:col-span-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit Price"
-                    {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                    className="input-dark"
-                  />
-                  {errors.lineItems?.[index]?.unitPrice && (
-                    <p className="mt-1 text-sm text-[#F87171]">
-                      {errors.lineItems[index]?.unitPrice?.message}
-                    </p>
-                  )}
+              </div>
+              <div>
+                <label className="label">Client Address</label>
+                <textarea className="input" rows={3} {...register("clientAddress")} />
+                {errors.clientAddress ? <p className="field-error">{errors.clientAddress.message}</p> : null}
+              </div>
+            </section>
+
+            <section className="card space-y-4 p-5">
+              <h2 className="text-[14px] font-medium text-[var(--text-1)]">Invoice</h2>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="label">Issue Date</label>
+                  <input className="input" type="date" {...register("issueDate")} />
+                  {errors.issueDate ? <p className="field-error">{errors.issueDate.message}</p> : null}
                 </div>
-                <div className="flex items-center justify-between gap-3 md:col-span-2">
-                  <span className="text-sm font-medium tabular-nums" style={{ color: "var(--text-primary)" }}>
-                    {formatCurrency(watchedLineItems[index]?.quantity * watchedLineItems[index]?.unitPrice || 0)}
-                  </span>
-                  {fields.length > 1 && (
+                <div>
+                  <label className="label">Due Date</label>
+                  <input
+                    className="input"
+                    type="date"
+                    {...dueDateField}
+                    onChange={(event) => {
+                      isDueDateTouched.current = true;
+                      void dueDateField.onChange(event);
+                    }}
+                  />
+                  {errors.dueDate ? <p className="field-error">{errors.dueDate.message}</p> : null}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {[15, 30, 60].map((days) => (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        key={days}
+                        onClick={() => {
+                          isDueDateTouched.current = true;
+                          setValue("dueDate", addDays(issueDate, days));
+                        }}
+                        type="button"
+                      >
+                        Net {days}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Currency</label>
+                  <select className="input" {...register("currency")}>
+                    {currencies.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.code} ({currency.symbol})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section className="card space-y-4 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[14px] font-medium text-[var(--text-1)]">Items</h2>
+                <button className="btn btn-secondary btn-sm" onClick={appendItem} type="button">
+                  Add item
+                </button>
+              </div>
+
+              {errors.lineItems ? <p className="field-error">{errors.lineItems.message}</p> : null}
+
+              <div className="space-y-3">
+                {fields.map((field, index) => (
+                  <div
+                    className="grid gap-2 md:grid-cols-[1fr_80px_100px_80px_32px] md:items-start"
+                    key={field.id}
+                  >
+                    <div>
+                      <input
+                        className="input"
+                        id={`line-item-description-${index}`}
+                        placeholder="Description"
+                        type="text"
+                        {...register(`lineItems.${index}.description`)}
+                      />
+                      {errors.lineItems?.[index]?.description ? (
+                        <p className="field-error">{errors.lineItems[index]?.description?.message}</p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <input
+                        className="input"
+                        placeholder="Qty"
+                        step="0.01"
+                        type="number"
+                        {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
+                      />
+                      {errors.lineItems?.[index]?.quantity ? (
+                        <p className="field-error">{errors.lineItems[index]?.quantity?.message}</p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <input
+                        className="input"
+                        onKeyDown={(event) => {
+                          if (event.key === "Tab" && !event.shiftKey && index === fields.length - 1) {
+                            event.preventDefault();
+                            appendItem();
+                          }
+                        }}
+                        placeholder="Unit price"
+                        step="0.01"
+                        type="number"
+                        {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
+                      />
+                      {errors.lineItems?.[index]?.unitPrice ? (
+                        <p className="field-error">{errors.lineItems[index]?.unitPrice?.message}</p>
+                      ) : null}
+                    </div>
+                    <div className="mono flex h-9 items-center justify-end text-right text-[var(--accent)]">
+                      {formatCurrency(
+                        (watchedLineItems[index]?.quantity || 0) * (watchedLineItems[index]?.unitPrice || 0),
+                      )}
+                    </div>
                     <button
-                      type="button"
+                      aria-label="Remove item"
+                      className="btn btn-ghost btn-sm h-9 px-0 text-[var(--red)]"
+                      disabled={fields.length === 1}
                       onClick={() => remove(index)}
-                      className="rounded-lg border border-[rgba(239,68,68,0.3)] px-2 py-1 text-[#F87171] transition hover:bg-[rgba(239,68,68,0.15)]"
+                      type="button"
                     >
                       ×
                     </button>
-                  )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="card space-y-4 p-5">
+              <h2 className="text-[14px] font-medium text-[var(--text-1)]">Details</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">Tax Rate (%)</label>
+                  <input
+                    className="input"
+                    max="100"
+                    min="0"
+                    step="0.01"
+                    type="number"
+                    {...register("taxRate", { valueAsNumber: true })}
+                  />
                 </div>
               </div>
-            ))}
+              <div>
+                <label className="label">Notes / Terms</label>
+                <textarea
+                  className="input"
+                  placeholder="Payment terms, notes, or additional information..."
+                  rows={4}
+                  {...register("notes")}
+                />
+              </div>
+            </section>
           </div>
-        </div>
 
-        {/* Tax and Notes */}
-        <div className="glass-card p-6">
-          <h2 className="section-heading">Additional Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="field-label">
-                Tax Rate (%)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                {...register("taxRate", { valueAsNumber: true })}
-                className="input-dark"
+          <aside className="card self-start p-5 xl:sticky xl:top-24">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">Preview</span>
+              <span
+                className="inline-block h-[5px] w-[5px] rounded-full bg-[var(--accent)]"
+                style={{ animation: "pulse 2s ease infinite" }}
               />
             </div>
-            <div className="md:col-span-2">
-              <label className="field-label">
-                Notes / Terms
-              </label>
-              <textarea
-                {...register("notes")}
-                rows={4}
-                placeholder="Payment terms, notes, or any additional information..."
-                className="input-dark"
-              />
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-2)]">{values.clientName || "—"}</p>
+                <p className="mt-1 text-xs text-[var(--text-3)]">{values.clientEmail || "No email yet"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-[var(--text-3)]">Issue</p>
+                  <p className="mt-1 text-[var(--text-2)]">{values.issueDate || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--text-3)]">Due</p>
+                  <p className="mt-1 text-[var(--text-2)]">{values.dueDate || "—"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {watchedLineItems.map((item, index) => (
+                  <div className="flex items-center justify-between gap-3 text-xs" key={fields[index]?.id ?? index}>
+                    <span className="truncate text-[var(--text-2)]">{item.description || "Untitled item"}</span>
+                    <span className="mono text-[var(--text-1)]">
+                      {formatCurrency((item.quantity || 0) * (item.unitPrice || 0))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="divider" />
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-2)]">Subtotal</span>
+                  <span className="mono">{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-2)]">Tax</span>
+                  <span className="mono">{formatCurrency(taxAmount)}</span>
+                </div>
+                <div className="flex justify-between text-base font-semibold text-[var(--text-1)]">
+                  <span>Total</span>
+                  <span className="mono">{formatCurrency(total)}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
 
-        {/* Totals */}
-        <div className="glass-card p-5 text-right">
-          <h2 className="section-heading text-left">Invoice Total</h2>
-          <div className="ml-auto max-w-sm space-y-3">
-            <div className="flex justify-between">
-              <span style={{ color: "var(--text-secondary)" }}>Subtotal:</span>
-              <span className="font-medium tabular-nums">{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span style={{ color: "var(--text-secondary)" }}>Tax ({watchedTaxRate}%):</span>
-              <span className="font-medium tabular-nums">{formatCurrency(taxAmount)}</span>
-            </div>
-            <div className="flex items-end justify-between border-t pt-4" style={{ borderColor: "var(--border)" }}>
-              <span>Total:</span>
-              <span className="stat-number text-[var(--accent)]">{formatCurrency(total)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            onClick={() => navigate("/invoices")}
-            variant="secondary"
-          >
+        <div className="sticky bottom-0 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--bg-0)] py-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button onClick={() => navigate("/invoices")} variant="ghost">
             Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={handleSaveAsDraft}
-            disabled={loading}
-            variant="secondary"
-          >
-            {loading ? "Saving..." : "Save as Draft"}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSaveAndSend}
-            disabled={loading}
-            className="sm:min-w-44"
-          >
-            {loading ? "Saving..." : "Save and Send"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              loading={saveState === "loading"}
+              onClick={() => void handleSubmit(onSubmit)()}
+              variant="secondary"
+            >
+              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save as draft"}
+            </Button>
+            <Button loading={saveState === "loading"} onClick={handleSaveAndSend}>
+              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save & Send"}
+            </Button>
+          </div>
         </div>
       </form>
     </Page>

@@ -1,9 +1,9 @@
 import MDEditor from "@uiw/react-md-editor";
 import "@uiw/react-md-editor/markdown-editor.css";
-import { useEffect, useState } from "react";
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { Link, useNavigate, useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef, useState } from "react";
+import { Controller, type SubmitHandler, useForm } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/Button";
@@ -12,13 +12,14 @@ import { Page } from "@/pages/Page";
 import type { CreateProposalData, UpdateProposalData } from "@/types/invoice";
 
 const proposalSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  clientName: z.string().min(1, "Client name is required"),
   clientEmail: z.string().email("Valid client email is required"),
+  clientName: z.string().min(1, "Client name is required"),
   content: z.string().min(1, "Proposal content is required"),
+  title: z.string().min(1, "Title is required"),
 });
 
 type FormValues = z.infer<typeof proposalSchema>;
+type SaveState = "idle" | "loading" | "success" | "error";
 
 const defaultContent = [
   "## Scope of Work",
@@ -41,22 +42,23 @@ export function ProposalFormPage() {
   const { id } = useParams();
   const isEditing = Boolean(id);
   const [loading, setLoading] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
-
+  const saveStateTimer = useRef<number | null>(null);
   const {
     control,
+    formState: { errors },
     handleSubmit,
     register,
     reset,
-    formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(proposalSchema),
     defaultValues: {
-      title: "",
-      clientName: "",
       clientEmail: "",
+      clientName: "",
       content: defaultContent,
+      title: "",
     },
+    resolver: zodResolver(proposalSchema),
   });
 
   useEffect(() => {
@@ -69,10 +71,10 @@ export function ProposalFormPage() {
         setLoading(true);
         const proposal = await proposalsApi.getById(id);
         reset({
-          title: proposal.title,
-          clientName: proposal.clientName,
           clientEmail: proposal.clientEmail,
+          clientName: proposal.clientName,
           content: proposal.content,
+          title: proposal.title,
         });
         setError(null);
       } catch (err) {
@@ -83,12 +85,30 @@ export function ProposalFormPage() {
       }
     };
 
-    loadProposal();
+    void loadProposal();
   }, [id, isEditing, reset]);
+
+  useEffect(
+    () => () => {
+      if (saveStateTimer.current !== null) {
+        window.clearTimeout(saveStateTimer.current);
+      }
+    },
+    [],
+  );
+
+  const showTransientState = (state: SaveState) => {
+    setSaveState(state);
+    if (saveStateTimer.current !== null) {
+      window.clearTimeout(saveStateTimer.current);
+    }
+    saveStateTimer.current = window.setTimeout(() => setSaveState("idle"), 2000);
+  };
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     try {
       setLoading(true);
+      setSaveState("loading");
 
       if (isEditing && id) {
         await proposalsApi.update(id, data as UpdateProposalData);
@@ -96,9 +116,11 @@ export function ProposalFormPage() {
         await proposalsApi.create(data as CreateProposalData);
       }
 
+      showTransientState("success");
       navigate("/proposals");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to save proposal");
+      showTransientState("error");
       console.error("Error saving proposal:", err);
     } finally {
       setLoading(false);
@@ -109,6 +131,7 @@ export function ProposalFormPage() {
     handleSubmit(async (data) => {
       try {
         setLoading(true);
+        setSaveState("loading");
 
         if (isEditing && id) {
           await proposalsApi.update(id, data as UpdateProposalData);
@@ -118,9 +141,11 @@ export function ProposalFormPage() {
           await proposalsApi.send(proposal.id);
         }
 
+        showTransientState("success");
         navigate("/proposals");
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to save and send proposal");
+        showTransientState("error");
         console.error("Error saving and sending proposal:", err);
       } finally {
         setLoading(false);
@@ -130,98 +155,71 @@ export function ProposalFormPage() {
 
   if (loading && isEditing) {
     return (
-      <Page title="Edit Proposal" description="Update proposal details and terms.">
-        <div className="flex h-64 items-center justify-center" style={{ color: "var(--text-secondary)" }}>
-          Loading proposal...
+      <Page title="Edit Proposal">
+        <div className="card space-y-4 p-5">
+          <div className="skeleton h-4 w-32" />
+          <div className="skeleton h-9 w-full" />
+          <div className="skeleton h-48 w-full" />
         </div>
       </Page>
     );
   }
 
   return (
-    <Page
-      title={isEditing ? "Edit Proposal" : "Create Proposal"}
-      description="Prepare project scope, pricing, and terms for a client."
-    >
-      {error && <div className="error-banner text-sm">{error}</div>}
+    <Page title={isEditing ? "Edit Proposal" : "New Proposal"}>
+      {error ? <div className="card error-state">⚠ {error}</div> : null}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <section className="glass-card p-6">
-          <h2 className="section-heading">Proposal Details</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="field-label">
-                Proposal Title *
-              </label>
-              <input
-                type="text"
-                {...register("title")}
-                className="input-dark"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.title.message}</p>
-              )}
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <section className="card space-y-4 p-5">
+          <h2 className="text-[14px] font-medium text-[var(--text-1)]">Proposal</h2>
+          <div>
+            <label className="label">Title</label>
+            <input className="input" type="text" {...register("title")} />
+            {errors.title ? <p className="field-error">{errors.title.message}</p> : null}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">Client Name</label>
+              <input className="input" type="text" {...register("clientName")} />
+              {errors.clientName ? <p className="field-error">{errors.clientName.message}</p> : null}
             </div>
             <div>
-              <label className="field-label">
-                Client Name *
-              </label>
-              <input
-                type="text"
-                {...register("clientName")}
-                className="input-dark"
-              />
-              {errors.clientName && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.clientName.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="field-label">
-                Client Email *
-              </label>
-              <input
-                type="email"
-                {...register("clientEmail")}
-                className="input-dark"
-              />
-              {errors.clientEmail && (
-                <p className="mt-1 text-sm text-[#F87171]">{errors.clientEmail.message}</p>
-              )}
+              <label className="label">Client Email</label>
+              <input className="input" type="email" {...register("clientEmail")} />
+              {errors.clientEmail ? <p className="field-error">{errors.clientEmail.message}</p> : null}
             </div>
           </div>
         </section>
 
-        <section className="glass-card p-6" data-color-mode="dark">
-          <label className="section-heading block">
-            Proposal Body *
-          </label>
+        <section className="card p-5" data-color-mode="dark">
+          <label className="label">Content</label>
           <Controller
             control={control}
             name="content"
             render={({ field }) => (
               <MDEditor
-                height={500}
+                height={320}
                 preview="edit"
                 value={field.value}
                 onChange={(value) => field.onChange(value ?? "")}
               />
             )}
           />
-          {errors.content && (
-            <p className="mt-2 text-sm text-[#F87171]">{errors.content.message}</p>
-          )}
+          {errors.content ? <p className="field-error">{errors.content.message}</p> : null}
         </section>
 
-        <div className="flex flex-col justify-end gap-3 sm:flex-row">
-          <Link to="/proposals">
-            <Button variant="secondary">Cancel</Button>
-          </Link>
-          <Button type="submit" disabled={loading} variant="secondary">
-            {loading ? "Saving..." : "Save as Draft"}
+        <div className="sticky bottom-0 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--bg-0)] py-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button onClick={() => navigate("/proposals")} variant="ghost">
+            Cancel
           </Button>
-          <Button type="button" onClick={handleSaveAndSend} disabled={loading}>
-            {loading ? "Saving..." : "Save and Send"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button loading={saveState === "loading"} onClick={() => void handleSubmit(onSubmit)()} variant="secondary">
+              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save as draft"}
+            </Button>
+            <Button loading={saveState === "loading"} onClick={handleSaveAndSend}>
+              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save & Send"}
+            </Button>
+          </div>
         </div>
       </form>
     </Page>

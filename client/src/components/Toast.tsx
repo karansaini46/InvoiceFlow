@@ -1,34 +1,48 @@
-type ToastProps = {
+type ToastType = "success" | "error" | "info";
+
+const icons: Record<ToastType, string> = {
+  error: "✕",
+  info: "·",
+  success: "✓",
+};
+
+const colors: Record<ToastType, string> = {
+  error: "var(--red)",
+  info: "var(--accent)",
+  success: "var(--green)",
+};
+
+export function Toast({
+  message,
+  type = "success",
+  onDismiss,
+}: {
   message: string;
+  type?: ToastType;
   onDismiss: () => void;
-  tone?: "success" | "error";
-};
-
-const toneClasses = {
-  success: "var(--success)",
-  error: "#F87171",
-};
-
-export function Toast({ message, onDismiss, tone = "success" }: ToastProps) {
+}) {
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 animate-fade-in-up"
       style={{
-        alignItems: "center",
-        background: "var(--bg-elevated)",
+        animation: "fadeIn 200ms ease both",
+        background: "var(--bg-2)",
         border: "1px solid var(--border)",
-        borderRadius: 14,
-        boxShadow: "0 0 40px rgba(99,102,241,0.2)",
-        color: "var(--text-primary)",
+        borderRadius: 8,
+        bottom: 20,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        color: "var(--text-1)",
         display: "flex",
-        fontSize: 14,
-        fontWeight: 500,
-        gap: 12,
-        maxWidth: 360,
-        padding: "14px 20px",
+        alignItems: "center",
+        fontSize: 13,
+        gap: 10,
+        maxWidth: 340,
+        padding: "10px 14px",
+        position: "fixed",
+        right: 20,
+        zIndex: 99,
       }}
     >
-      <span style={{ color: toneClasses[tone], fontSize: 18 }}>{tone === "error" ? "!" : "✓"}</span>
+      <span style={{ color: colors[type], fontSize: 14, fontWeight: 600 }}>{icons[type]}</span>
       <span style={{ flex: 1 }}>{message}</span>
       <button
         aria-label="Dismiss notification"
@@ -36,10 +50,11 @@ export function Toast({ message, onDismiss, tone = "success" }: ToastProps) {
         style={{
           background: "none",
           border: "none",
-          color: "var(--text-muted)",
+          color: "var(--text-3)",
           cursor: "pointer",
-          fontSize: 18,
+          fontSize: 16,
           lineHeight: 1,
+          padding: 2,
         }}
         type="button"
       >
