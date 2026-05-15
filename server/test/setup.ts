@@ -53,7 +53,23 @@ export const testUser = {
 let testUserIdInternal: string;
 let testAccessTokenInternal: string;
 
+const assertIsolatedTestDatabase = () => {
+  if (process.env.NODE_ENV !== "test" || !process.env.TEST_DATABASE_URL) {
+    throw new Error(
+      "Refusing to run destructive tests without NODE_ENV=test and TEST_DATABASE_URL set to an isolated test database.",
+    );
+  }
+
+  if (process.env.DATABASE_URL !== process.env.TEST_DATABASE_URL) {
+    throw new Error(
+      "Refusing to run destructive tests unless DATABASE_URL matches TEST_DATABASE_URL.",
+    );
+  }
+};
+
 beforeAll(async () => {
+  assertIsolatedTestDatabase();
+
   await prisma.lineItem.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.proposal.deleteMany();
