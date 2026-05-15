@@ -7,6 +7,11 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
 import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
 import { invoicesApi } from "@/lib/api/invoices";
+import {
+  downloadBlobAsFile,
+  getInvoicePdfFilename,
+  openInvoiceInGmail,
+} from "@/lib/gmail";
 import { Page } from "@/pages/Page";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { useAuthStore } from "@/store/auth";
@@ -147,16 +152,17 @@ export function InvoicesPage() {
     }
   };
 
-  const handleSendInvoice = async (invoice: Invoice) => {
+  const handleOpenInGmail = async (invoice: Invoice) => {
     try {
       setSendingInvoiceId(invoice.id);
-      const updatedInvoice = await invoicesApi.send(invoice.id);
-      setInvoices((items) => items.map((item) => (item.id === invoice.id ? updatedInvoice : item)));
-      setToast(`Invoice sent to ${invoice.clientEmail}`);
+      openInvoiceInGmail(invoice);
+      const blob = await invoicesApi.downloadPdf(invoice.id);
+      downloadBlobAsFile(blob, getInvoicePdfFilename(invoice.number));
+      setToast("Gmail opened with the client email filled. Attach the downloaded PDF before sending.");
       setError(null);
     } catch (error) {
-      setError(getApiErrorMessage(error, "Failed to send invoice"));
-      console.error("Error sending invoice:", error);
+      setError(getApiErrorMessage(error, "Failed to prepare invoice for Gmail"));
+      console.error("Error preparing invoice for Gmail:", error);
     } finally {
       setSendingInvoiceId(null);
     }
@@ -366,11 +372,11 @@ export function InvoicesPage() {
                               disabled={sendingInvoiceId === invoice.id}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                void handleSendInvoice(invoice);
+                                void handleOpenInGmail(invoice);
                               }}
                               type="button"
                             >
-                              {sendingInvoiceId === invoice.id ? "Sending..." : "Send"}
+                              {sendingInvoiceId === invoice.id ? "Preparing..." : "Open Gmail"}
                             </button>
                           ) : null}
                           {invoice.status === "SENT" ? (

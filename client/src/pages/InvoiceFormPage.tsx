@@ -7,8 +7,13 @@ import { z } from "zod";
 import { Button } from "@/components/Button";
 import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
 import { invoicesApi } from "@/lib/api/invoices";
+import {
+  downloadBlobAsFile,
+  getInvoicePdfFilename,
+  openInvoiceInGmail,
+} from "@/lib/gmail";
 import { Page } from "@/pages/Page";
-import type { CreateInvoiceData, UpdateInvoiceData } from "@/types/invoice";
+import type { CreateInvoiceData, Invoice, UpdateInvoiceData } from "@/types/invoice";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -198,26 +203,29 @@ export function InvoiceFormPage() {
     }
   };
 
-  const handleSaveAndSend = () => {
+  const handleSaveAndOpenGmail = () => {
     handleSubmit(async (data) => {
       try {
         setLoading(true);
         setSaveState("loading");
 
+        let invoice: Invoice;
+
         if (isEditing && id) {
-          await invoicesApi.update(id, data as UpdateInvoiceData);
-          await invoicesApi.send(id);
+          invoice = await invoicesApi.update(id, data as UpdateInvoiceData);
         } else {
-          const invoice = await invoicesApi.create(data as CreateInvoiceData);
-          await invoicesApi.send(invoice.id);
+          invoice = await invoicesApi.create(data as CreateInvoiceData);
         }
 
+        openInvoiceInGmail(invoice);
+        const blob = await invoicesApi.downloadPdf(invoice.id);
+        downloadBlobAsFile(blob, getInvoicePdfFilename(invoice.number));
         showTransientState("success");
         navigate("/invoices");
       } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to save and send invoice");
+        setError(err.response?.data?.message || "Failed to save and prepare invoice for Gmail");
         showTransientState("error");
-        console.error("Error saving and sending invoice:", err);
+        console.error("Error saving and preparing invoice for Gmail:", err);
       } finally {
         setLoading(false);
       }
@@ -499,8 +507,8 @@ export function InvoiceFormPage() {
             >
               {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save as draft"}
             </Button>
-            <Button loading={saveState === "loading"} onClick={handleSaveAndSend}>
-              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save & Send"}
+            <Button loading={saveState === "loading"} onClick={handleSaveAndOpenGmail}>
+              {saveState === "success" ? "✓ Saved" : saveState === "error" ? "Failed" : "Save & Open Gmail"}
             </Button>
           </div>
         </div>
