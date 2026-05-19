@@ -21,6 +21,7 @@ The client runs on `http://localhost:5173` and the server runs on `http://localh
 - Server environment variables: `server/.env`
 - Client environment variables: `client/.env` (if needed)
 - The server expects a PostgreSQL `DATABASE_URL`, not a SQLite file path.
+- Use a separate PostgreSQL database for `TEST_DATABASE_URL`; the test suite is destructive and refuses to run unless it is explicitly pointed at an isolated test database.
 
 ### Production Deployment
 - **Backend (Render)**: Set the service root to `server`, then use `npm install && npm run deploy:build` for the build command and `npm start` for the start command.

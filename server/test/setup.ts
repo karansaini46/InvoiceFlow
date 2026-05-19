@@ -55,7 +55,38 @@ export const testUser = {
 let testUserIdInternal: string;
 let testAccessTokenInternal: string;
 
+const assertIsolatedTestDatabase = () => {
+  const databaseUrl = process.env.DATABASE_URL;
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+
+  if (process.env.NODE_ENV !== "test" || !databaseUrl || !testDatabaseUrl) {
+    throw new Error(
+      "Refusing to run destructive tests without NODE_ENV=test, DATABASE_URL, and TEST_DATABASE_URL set.",
+    );
+  }
+
+  if (databaseUrl !== testDatabaseUrl) {
+    throw new Error(
+      "Refusing to run destructive tests unless DATABASE_URL matches TEST_DATABASE_URL.",
+    );
+  }
+
+  const parsedUrl = new URL(testDatabaseUrl);
+  const databaseName = decodeURIComponent(parsedUrl.pathname.replace(/^\//, ""));
+  const schemaName = parsedUrl.searchParams.get("schema") ?? "";
+  const isClearlyTestTarget =
+    databaseName.toLowerCase().includes("test") || schemaName.toLowerCase().includes("test");
+
+  if (!isClearlyTestTarget) {
+    throw new Error(
+      "Refusing to run destructive tests unless TEST_DATABASE_URL points to a database or schema containing 'test'.",
+    );
+  }
+};
+
 beforeAll(async () => {
+  assertIsolatedTestDatabase();
+
   await prisma.aiUsageLog.deleteMany();
   await prisma.lineItem.deleteMany();
   await prisma.invoice.deleteMany();
