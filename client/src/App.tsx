@@ -12,11 +12,21 @@ import { ProposalsListPage } from "@/pages/ProposalsListPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { UpgradePage } from "@/pages/UpgradePage";
+import { LandingPage } from "@/pages/LandingPage";
+
 
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="/"
+        element={
+          <PublicRoute>
+            <LandingPage />
+          </PublicRoute>
+        }
+      />
+
       <Route
         path="/login"
         element={
