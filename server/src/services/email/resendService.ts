@@ -92,7 +92,7 @@ export const sendInvoiceEmailViaResend = async (
   const { html, text, subject } = renderInvoiceSendEmail(params);
 
   const result = await resend.emails.send({
-    from: `InvoiceFlow <${from}>`,
+    from,
     to: params.clientEmail,
     replyTo: params.replyTo,
     subject,
@@ -131,7 +131,7 @@ export const sendPaymentConfirmationEmails = async (
   // Send to freelancer
   const freelancerEmail = renderPaymentConfirmationForFreelancer(params);
   const freelancerResult = await resend.emails.send({
-    from: `InvoiceFlow <${from}>`,
+    from,
     to: params.freelancerEmail,
     subject: freelancerEmail.subject,
     html: freelancerEmail.html,
@@ -146,7 +146,7 @@ export const sendPaymentConfirmationEmails = async (
   // Send to client
   const clientEmail = renderPaymentConfirmationForClient(params);
   const clientResult = await resend.emails.send({
-    from: `InvoiceFlow <${from}>`,
+    from,
     to: params.clientEmail,
     subject: clientEmail.subject,
     html: clientEmail.html,
@@ -175,7 +175,7 @@ export const sendFollowUpReminderEmail = async (
   const { html, text, subject } = renderFollowUpReminderEmail(params);
 
   const result = await resend.emails.send({
-    from: `InvoiceFlow <${from}>`,
+    from,
     to: params.clientEmail,
     replyTo: params.replyTo,
     subject,
