@@ -253,6 +253,7 @@ export function InvoiceDetailPage() {
           <Button onClick={() => navigate(`/invoices/${invoice.id}/edit`)} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</Button>
           {invoice.status === "DRAFT" && <Button loading={gmailLoading} onClick={handleOpenInGmail} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open in Gmail</Button>}
           {invoice.status === "DRAFT" && <Button loading={statusLoading === "SENT"} onClick={() => handleStatusUpdate("SENT")} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mark as sent</Button>}
+          {invoice.status === "SCHEDULED" && <Button loading={statusLoading === "DRAFT"} onClick={() => handleStatusUpdate("DRAFT")} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cancel Schedule</Button>}
           {(invoice.status === "SENT" || invoice.status === "OVERDUE") && <Button loading={statusLoading === "PAID"} onClick={() => handleStatusUpdate("PAID")} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mark as paid</Button>}
           <Button loading={downloadLoading} onClick={handleDownloadPdf} variant="primary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {downloadLoading ? "Preparing..." : downloaded ? "Downloaded" : "Download PDF"}
@@ -282,7 +283,7 @@ export function InvoiceDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <div className={`grid ${invoice.status === "SCHEDULED" && invoice.scheduledSendAt ? 'grid-cols-4' : 'grid-cols-3'} gap-4 mb-6 pb-6`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             <div>
               <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Issue Date</div>
               <div className="text-body">{formatDate(invoice.issueDate)}</div>
@@ -295,6 +296,12 @@ export function InvoiceDetailPage() {
               <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Currency</div>
               <div className="text-body">{invoice.currency}</div>
             </div>
+            {invoice.status === "SCHEDULED" && invoice.scheduledSendAt && (
+              <div>
+                <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Scheduled For</div>
+                <div className="text-body font-mono text-accent-primary" style={{ color: 'var(--accent-primary)' }}>{new Date(invoice.scheduledSendAt).toLocaleString()}</div>
+              </div>
+            )}
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
