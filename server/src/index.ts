@@ -21,7 +21,7 @@ import { startWorkers } from "./workers";
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors(corsOptions));
 
 // Mount webhooks BEFORE express.json() so Stripe signature verification can access the raw body
