@@ -151,13 +151,13 @@ export function InvoiceDetailPage() {
     }
   };
 
-  const handleStatusUpdate = async (status: Extract<InvoiceStatus, "SENT" | "PAID">) => {
+  const handleStatusUpdate = async (status: Extract<InvoiceStatus, "DRAFT" | "SENT" | "PAID">) => {
     if (!invoice) return;
     try {
       setStatusLoading(status);
       const updatedInvoice = await invoicesApi.updateStatus(invoice.id, status);
       setInvoice(updatedInvoice);
-      setToast(status === "SENT" ? "Invoice marked as sent." : "Invoice marked as paid.");
+      setToast(status === "SENT" ? "Invoice marked as sent." : status === "DRAFT" ? "Schedule cancelled, invoice is now a draft." : "Invoice marked as paid.");
       setError(null);
     } catch (error) {
       setError(getApiErrorMessage(error, `Failed to mark invoice as ${status.toLowerCase()}`));

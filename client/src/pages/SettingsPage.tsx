@@ -44,7 +44,7 @@ function getImageUrl(url?: string | null) {
   if (!url) return "";
   if (url.startsWith("http")) return url;
   const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-  return \`\${baseUrl.replace(/\\/$/, "")}\${url.startsWith("/") ? url : \`/\${url}\`}\`;
+  return `${baseUrl.replace(/\/$/, "")}${url.startsWith("/") ? url : `/${url}`}`;
 }
 
 export function SettingsPage() {
