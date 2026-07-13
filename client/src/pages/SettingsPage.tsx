@@ -40,6 +40,13 @@ function initials(value?: string) {
   return value?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "U";
 }
 
+function getImageUrl(url?: string | null) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+  return \`\${baseUrl.replace(/\\/$/, "")}\${url.startsWith("/") ? url : \`/\${url}\`}\`;
+}
+
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("business");
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -214,7 +221,7 @@ export function SettingsPage() {
               <div className="flex gap-6 items-start">
                 <div style={{ width: '100px', height: '100px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', overflow: 'hidden', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {logoPreview || profile?.logoUrl ? (
-                    <img src={logoPreview || profile?.logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={logoPreview || getImageUrl(profile?.logoUrl)} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span className="text-small text-muted">No logo</span>
                   )}

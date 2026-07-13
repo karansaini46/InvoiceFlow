@@ -40,6 +40,14 @@ interface FollowUpReminderData {
   paymentUrl: string;
 }
 
+interface ProposalEmailData {
+  title: string;
+  freelancerName: string;
+  clientName: string;
+  clientEmail: string;
+  publicUrl: string;
+}
+
 // ──────────────────────────────────────────────────────────────
 // Shared email wrapper
 // ──────────────────────────────────────────────────────────────
@@ -254,8 +262,50 @@ export const renderFollowUpReminderEmail = (data: FollowUpReminderData): { html:
   };
 };
 
+// ──────────────────────────────────────────────────────────────
+// Proposal Email
+// ──────────────────────────────────────────────────────────────
+
+export const renderProposalEmailHtml = (data: ProposalEmailData): { html: string; text: string; subject: string } => {
+  const body = `
+    <h1 style="margin:0 0 12px;font-size:24px;line-height:32px;color:#0f172a;">${escapeHtml(data.title)}</h1>
+    <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#334155;">
+      ${escapeHtml(data.freelancerName)} has sent you a proposal for review.
+    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 28px;border-collapse:collapse;">
+      <tr>
+        <td style="padding:12px;border-top:1px solid #e2e8f0;color:#64748b;">Client</td>
+        <td align="right" style="padding:12px;border-top:1px solid #e2e8f0;font-weight:700;color:#0f172a;">${escapeHtml(data.clientName)}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;color:#64748b;">From</td>
+        <td align="right" style="padding:12px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f172a;">${escapeHtml(data.freelancerName)}</td>
+      </tr>
+    </table>
+    <a href="${escapeHtml(data.publicUrl)}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;">
+      View proposal
+    </a>
+    <p style="margin:28px 0 0;font-size:13px;line-height:20px;color:#64748b;">
+      If the button does not work, open this link: <br>
+      <a href="${escapeHtml(data.publicUrl)}" style="color:#0f766e;">${escapeHtml(data.publicUrl)}</a>
+    </p>`;
+
+  const subject = \`\${data.title} from \${data.freelancerName}\`;
+
+  return {
+    html: wrapEmail(data.title, body),
+    text: [
+      subject,
+      \`Client: \${data.clientName}\`,
+      \`View proposal: \${data.publicUrl}\`,
+    ].join("\\n"),
+    subject,
+  };
+};
+
 export type {
   InvoiceEmailData,
   PaymentConfirmationData,
   FollowUpReminderData,
+  ProposalEmailData,
 };

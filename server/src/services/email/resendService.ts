@@ -1,16 +1,19 @@
 import { Resend } from "resend";
 
 import { loadEnv } from "../../config/env";
+import { HttpError } from "../../utils/httpError";
 import type {
   InvoiceEmailData,
   PaymentConfirmationData,
   FollowUpReminderData,
+  ProposalEmailData,
 } from "./templates";
 import {
   renderInvoiceSendEmail,
   renderPaymentConfirmationForFreelancer,
   renderPaymentConfirmationForClient,
   renderFollowUpReminderEmail,
+  renderProposalEmailHtml,
 } from "./templates";
 
 loadEnv();
@@ -168,6 +171,63 @@ export const sendFollowUpReminderEmail = async (
 
   if (!result.data) {
     throw new Error("Resend returned no data and no error.");
+  }
+
+  return { messageId: result.data.id };
+};
+
+/**
+ * Send a proposal email via Resend.
+ */
+export const sendProposalEmail = async (proposalId: string, userId: string): Promise<SendEmailResult> => {
+  const proposal = await prisma.proposal.findUnique({
+    where: { id: proposalId },
+    include: {
+      user: {
+        select: {
+          email: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!proposal) {
+    throw new HttpError(404, "Proposal not found");
+  }
+
+  if (proposal.userId !== userId) {
+    throw new HttpError(403, "Proposal does not belong to this user");
+  }
+
+  const publicUrl = getPublicProposalUrl(proposal.id);
+  const resend = getResend();
+  const from = getFromEmail();
+  
+  const { html, text, subject } = renderProposalEmailHtml({
+    title: proposal.title,
+    freelancerName: proposal.user.name || "Freelancer",
+    clientName: proposal.clientName,
+    clientEmail: proposal.clientEmail,
+    publicUrl,
+  });
+
+  const result = await resend.emails.send({
+    from,
+    to: proposal.clientEmail,
+    replyTo: proposal.user.email,
+    subject,
+    html,
+    text,
+  });
+
+  if (result.error) {
+    console.error("[RESEND ERROR] Failed to send proposal email:", result.error);
+    throw new HttpError(502, "Unable to send email right now");
+  }
+
+  if (!result.data) {
+    throw new HttpError(502, "Resend returned no data and no error.");
   }
 
   return { messageId: result.data.id };

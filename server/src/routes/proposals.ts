@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 
 import { prisma } from "../lib/prisma";
-import { sendProposalEmail } from "../services/emailService";
+import { sendProposalEmail } from "../services/email/resendService";
 import { escapeHtml } from "../services/pdfService";
 import { HttpError } from "../utils/httpError";
 

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "../lib/prisma";
-import { sendInvoiceEmail } from "../services/emailService";
+import { enqueueSendInvoice } from "../queues/sendInvoiceQueue";
 import {
   generateInvoicePDF,
   getInvoicePdfFilename,
@@ -237,7 +237,7 @@ export const sendInvoice = async (req: Request, res: Response, next: NextFunctio
     const userId = req.user!.id;
     const id = getRouteId(req);
 
-    await sendInvoiceEmail(id, userId);
+    await enqueueSendInvoice(id, 0);
 
     const updatedInvoice = await prisma.invoice.update({
       where: { id },
