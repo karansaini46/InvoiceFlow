@@ -30,6 +30,17 @@ interface InvoiceEmailParams extends InvoiceEmailData {
 
 let resendClient: Resend | null = null;
 
+import { prisma } from "../../lib/prisma";
+
+const getPublicProposalUrl = (proposalId: string) => {
+  const baseUrl =
+    process.env.PUBLIC_PROPOSAL_BASE_URL ??
+    process.env.PUBLIC_INVOICE_BASE_URL ??
+    `http://localhost:${process.env.PORT ?? 3000}`;
+
+  return `${baseUrl.replace(/\/$/, "")}/proposals/${proposalId}/view`;
+};
+
 const getResend = (): Resend => {
   if (resendClient) {
     return resendClient;

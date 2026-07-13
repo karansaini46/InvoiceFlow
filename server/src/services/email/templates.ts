@@ -290,15 +290,15 @@ export const renderProposalEmailHtml = (data: ProposalEmailData): { html: string
       <a href="${escapeHtml(data.publicUrl)}" style="color:#0f766e;">${escapeHtml(data.publicUrl)}</a>
     </p>`;
 
-  const subject = \`\${data.title} from \${data.freelancerName}\`;
+  const subject = `${data.title} from ${data.freelancerName}`;
 
   return {
     html: wrapEmail(data.title, body),
     text: [
       subject,
-      \`Client: \${data.clientName}\`,
-      \`View proposal: \${data.publicUrl}\`,
-    ].join("\\n"),
+      `Client: ${data.clientName}`,
+      `View proposal: ${data.publicUrl}`,
+    ].join("\n"),
     subject,
   };
 };
