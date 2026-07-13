@@ -8,8 +8,8 @@ datasource db {
 }
 
 model User {
-  id                  String     @id @default(cuid())
-  email               String     @unique
+  id                  String         @id @default(cuid())
+  email               String         @unique
   passwordHash        String
   name                String
   businessName        String?
@@ -17,41 +17,49 @@ model User {
   businessPhone       String?
   businessWebsite     String?
   logoUrl             String?
-  defaultCurrency     String     @default("USD")
-  defaultTaxRate      Float      @default(0)
-  defaultPaymentTerms String     @default("Net 30")
+  defaultCurrency     String         @default("USD")
+  defaultTaxRate      Float          @default(0)
+  defaultPaymentTerms String         @default("Net 30")
   defaultNotes        String?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  plan                Plan       @default(FREE)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  plan                Plan           @default(FREE)
   stripeCustomerId    String?
   invoices            Invoice[]
   proposals           Proposal[]
   aiUsageLogs         AiUsageLog[]
+  followUpRules       FollowUpRule[]
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
-  number        String
-  userId        String
-  clientName    String
-  clientEmail   String
-  clientAddress String
-  issueDate     DateTime
-  dueDate       DateTime
-  status        InvoiceStatus @default(DRAFT)
-  currency      String
-  notes         String
-  subtotal      Float
-  taxRate       Float
-  taxAmount     Float
-  total         Float
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lineItems     LineItem[]
-  aiUsageLogs   AiUsageLog[]
+  id                       String        @id @default(cuid())
+  number                   String
+  userId                   String
+  clientName               String
+  clientEmail              String
+  clientAddress            String
+  issueDate                DateTime
+  dueDate                  DateTime
+  status                   InvoiceStatus @default(DRAFT)
+  currency                 String
+  notes                    String
+  subtotal                 Float
+  taxRate                  Float
+  taxAmount                Float
+  total                    Float
+  scheduledSendAt          DateTime?
+  sentAt                   DateTime?
+  paidAt                   DateTime?
+  stripeCheckoutSessionId  String?
+  stripePaymentIntentId    String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  user                     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lineItems                LineItem[]
+  aiUsageLogs              AiUsageLog[]
+  followUpRules            FollowUpRule[]
+  followUpLogs             FollowUpLog[]
+  emailEvents              EmailEvent[]
 
   @@unique([userId, number])
   @@index([userId])
@@ -88,6 +96,47 @@ model LineItem {
   @@index([invoiceId])
 }
 
+model FollowUpRule {
+  id         String        @id @default(cuid())
+  invoiceId  String?
+  userId     String
+  offsetDays Int
+  enabled    Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  invoice    Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs       FollowUpLog[]
+
+  @@index([userId])
+  @@index([invoiceId])
+}
+
+model FollowUpLog {
+  id              String       @id @default(cuid())
+  invoiceId       String
+  ruleId          String
+  sentAt          DateTime     @default(now())
+  bullmqJobId     String
+  resendMessageId String?
+  invoice         Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  rule            FollowUpRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model EmailEvent {
+  id         String   @id @default(cuid())
+  invoiceId  String?
+  type       String
+  email      String
+  occurredAt DateTime @default(now())
+  payload    String?
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([email])
+}
+
 model Proposal {
   id          String         @id @default(cuid())
   userId      String
@@ -110,9 +159,12 @@ enum Plan {
 
 enum InvoiceStatus {
   DRAFT
+  SCHEDULED
   SENT
+  VIEWED
   PAID
   OVERDUE
+  CANCELLED
 }
 
 enum ProposalStatus {

@@ -6,9 +6,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
+import { Layout } from "@/components/Layout";
+import { Card } from "@/components/Card";
 import { proposalsApi } from "@/lib/api/proposals";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import { Page } from "@/pages/Page";
 import type { Proposal, ProposalStatus } from "@/types/invoice";
 
 function Timeline({ status }: { status: ProposalStatus }) {
@@ -16,32 +17,33 @@ function Timeline({ status }: { status: ProposalStatus }) {
   const currentIndex = steps.indexOf(status);
 
   return (
-    <div className="flex items-start">
+    <div className="flex" style={{ width: '100%' }}>
       {steps.map((step, index) => {
         const completed = index < currentIndex;
         const current = index === currentIndex;
         const declined = current && step === "DECLINED";
 
         return (
-          <div className="flex flex-1 items-start" key={step}>
-            <div className="flex flex-col items-center">
+          <div key={step} className="flex" style={{ flex: 1, alignItems: 'center' }}>
+            <div className="flex-col items-center" style={{ display: 'flex' }}>
               <span
-                className="mono flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
                 style={{
-                  background: completed ? "var(--accent)" : current ? "var(--accent-dim)" : "var(--bg-2)",
-                  border: current
-                    ? `2px solid ${declined ? "var(--red)" : "var(--accent)"}`
-                    : "1px solid transparent",
-                  color: completed ? "#fff" : declined ? "var(--red)" : current ? "var(--accent)" : "var(--text-3)",
+                  width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%',
+                  fontSize: '12px', fontWeight: 600,
+                  backgroundColor: completed ? 'var(--accent-primary)' : current ? 'var(--bg-surface-elevated)' : 'var(--bg-base)',
+                  border: current ? `2px solid ${declined ? 'var(--error-text)' : 'var(--accent-primary)'}` : '1px solid var(--border-strong)',
+                  color: completed ? 'var(--accent-primary-text)' : declined ? 'var(--error-text)' : current ? 'var(--accent-primary)' : 'var(--text-tertiary)',
                 }}
               >
                 {index + 1}
               </span>
-              <span className="mt-2 text-[10px] uppercase tracking-wide text-[var(--text-3)]">
+              <span className="mt-2 text-small uppercase tracking-wider" style={{ color: current || completed ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: '10px' }}>
                 {step}
               </span>
             </div>
-            {index < steps.length - 1 ? <span className="mt-2.5 h-px flex-1 bg-[var(--border)]" /> : null}
+            {index < steps.length - 1 && (
+              <div style={{ flex: 1, height: '2px', backgroundColor: completed ? 'var(--accent-primary)' : 'var(--border-subtle)', margin: '0 16px', position: 'relative', top: '-10px' }} />
+            )}
           </div>
         );
       })}
@@ -65,7 +67,6 @@ export function ProposalDetailPage() {
       setLoading(false);
       return;
     }
-
     void loadProposal(id);
   }, [id]);
 
@@ -77,17 +78,13 @@ export function ProposalDetailPage() {
       setError(null);
     } catch (err) {
       setError("Failed to load proposal");
-      console.error("Error loading proposal:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSend = async () => {
-    if (!proposal) {
-      return;
-    }
-
+    if (!proposal) return;
     try {
       setSendLoading(true);
       const updatedProposal = await proposalsApi.send(proposal.id);
@@ -96,24 +93,19 @@ export function ProposalDetailPage() {
       setError(null);
     } catch (error) {
       setError(getApiErrorMessage(error, "Failed to send proposal"));
-      console.error("Error sending proposal:", error);
     } finally {
       setSendLoading(false);
     }
   };
 
   const handleConvert = async () => {
-    if (!proposal) {
-      return;
-    }
-
+    if (!proposal) return;
     try {
       setConvertLoading(true);
       const { invoiceId } = await proposalsApi.convert(proposal.id);
       navigate(`/invoices/${invoiceId}/edit`);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to convert proposal");
-      console.error("Error converting proposal:", err);
     } finally {
       setConvertLoading(false);
     }
@@ -121,79 +113,65 @@ export function ProposalDetailPage() {
 
   if (loading) {
     return (
-      <Page title="Proposal">
-        <div className="space-y-4">
-          <div className="card space-y-4 p-5">
-            <div className="skeleton h-4 w-28" />
-            <div className="skeleton h-5 w-48" />
-          </div>
-          <div className="card p-5">
-            <div className="skeleton h-40 w-full" />
-          </div>
+      <Layout title="Proposal">
+        <div className="flex-col gap-6" style={{ display: 'flex' }}>
+          <Card style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>Loading...</Card>
         </div>
-      </Page>
+      </Layout>
     );
   }
 
   if (!proposal) {
     return (
-      <Page title="Proposal">
-        <div className="card error-state">⚠ {error ?? "Proposal not found"}</div>
-        <Button onClick={() => navigate("/proposals")} size="sm" variant="ghost">
-          ← Proposals
-        </Button>
-      </Page>
+      <Layout title="Proposal">
+        <div style={{ padding: '12px 16px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: 'var(--radius-md)' }}>
+          {error ?? "Proposal not found"}
+        </div>
+        <Button onClick={() => navigate("/proposals")} variant="ghost" className="mt-4">← Proposals</Button>
+      </Layout>
     );
   }
 
   return (
-    <Page title={proposal.title}>
-      {toast ? <Toast message={toast} onDismiss={() => setToast(null)} /> : null}
-      {error ? <div className="card error-state">⚠ {error}</div> : null}
+    <Layout title={proposal.title}>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {error && <div style={{ padding: '12px 16px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: 'var(--radius-md)', marginBottom: '24px' }}>{error}</div>}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button onClick={() => navigate("/proposals")} size="sm" variant="ghost">
-          ← Proposals
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate(`/proposals/${proposal.id}/edit`)} size="sm" variant="secondary">
-            Edit
-          </Button>
-          {proposal.status === "DRAFT" ? (
-            <Button loading={sendLoading} onClick={() => void handleSend()} size="sm">
-              Send Proposal
-            </Button>
-          ) : null}
-          <Button
-            disabled={proposal.status !== "ACCEPTED"}
-            loading={convertLoading}
-            onClick={() => void handleConvert()}
-            size="sm"
-            variant="secondary"
-          >
+      <div className="flex justify-between items-center mb-6">
+        <Button onClick={() => navigate("/proposals")} variant="ghost" size="sm">← Proposals</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate(`/proposals/${proposal.id}/edit`)} variant="secondary" size="sm">Edit</Button>
+          {proposal.status === "DRAFT" && (
+            <Button loading={sendLoading} onClick={handleSend} size="sm" variant="primary">Send Proposal</Button>
+          )}
+          <Button disabled={proposal.status !== "ACCEPTED"} loading={convertLoading} onClick={handleConvert} size="sm" variant="secondary">
             Convert to Invoice
           </Button>
         </div>
       </div>
 
-      <section className="card p-4">
-        <Timeline status={proposal.status} />
-      </section>
+      <div className="flex-col gap-6" style={{ display: 'flex' }}>
+        <Card>
+          <Timeline status={proposal.status} />
+        </Card>
 
-      <section className="card p-5">
-        <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-[11px] uppercase text-[var(--text-3)]">Client</p>
-            <h2 className="mt-1 text-[15px] font-semibold text-[var(--text-1)]">{proposal.clientName}</h2>
-            <p className="mono mt-1 text-[12px] text-[var(--text-2)]">{proposal.clientEmail}</p>
+        <Card>
+          <div className="flex justify-between items-start mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div className="text-small font-medium text-muted uppercase tracking-wider mb-2">Client</div>
+              <h2 className="text-h3 mb-1">{proposal.clientName}</h2>
+              <p className="font-mono text-small text-muted">{proposal.clientEmail}</p>
+            </div>
+            <div>
+              <StatusBadge status={proposal.status} />
+            </div>
           </div>
-          <StatusBadge status={proposal.status} />
-        </div>
 
-        <div className="mt-5" data-color-mode="dark">
-          <MDEditor.Markdown source={proposal.content} />
-        </div>
-      </section>
-    </Page>
+          <div data-color-mode="light" style={{ padding: '24px', backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+            <MDEditor.Markdown source={proposal.content} style={{ backgroundColor: 'transparent', color: 'var(--text-primary)' }} />
+          </div>
+        </Card>
+      </div>
+    </Layout>
   );
 }

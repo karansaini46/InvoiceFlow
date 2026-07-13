@@ -1,4 +1,6 @@
 import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
 
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
@@ -446,11 +448,27 @@ const renderPdfHeader = (doc: PdfDoc, invoice: InvoiceForRender) => {
   const user = invoice.user;
   const businessName = toPdfText(user.businessName || user.name || "InvoiceFlow");
 
-  doc.rect(left, 44, 58, 58).fill(pdfColors.ink);
-  doc.fillColor(pdfColors.white).font("Helvetica-Bold").fontSize(20).text("IF", left, 63, {
-    align: "center",
-    width: 58,
-  });
+  let logoDrawn = false;
+  if (user.logoUrl) {
+    try {
+      const logoPath = path.join(process.cwd(), "uploads", path.basename(user.logoUrl));
+      if (fs.existsSync(logoPath)) {
+        // Draw the uploaded logo
+        doc.image(logoPath, left, 44, { width: 58, height: 58 });
+        logoDrawn = true;
+      }
+    } catch (err) {
+      console.error("Failed to load user logo for PDF:", err);
+    }
+  }
+
+  if (!logoDrawn) {
+    doc.rect(left, 44, 58, 58).fill(pdfColors.ink);
+    doc.fillColor(pdfColors.white).font("Helvetica-Bold").fontSize(20).text("IF", left, 63, {
+      align: "center",
+      width: 58,
+    });
+  }
 
   doc.fillColor(pdfColors.ink).font("Helvetica-Bold").fontSize(18).text(businessName, left + 74, 46, {
     width: 260,

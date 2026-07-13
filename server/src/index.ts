@@ -15,12 +15,19 @@ import { invoiceRouter } from "./routes/invoiceRouter";
 import { paymentRouter } from "./routes/payment";
 import { proposalRouter } from "./routes/proposalRouter";
 import { settingsRouter } from "./routes/settings";
+import { stripeRouter, resendRouter } from "./routes/webhooks";
+import { startWorkers } from "./workers";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
 app.use(helmet());
 app.use(cors(corsOptions));
+
+// Mount webhooks BEFORE express.json() so Stripe signature verification can access the raw body
+app.use("/webhooks/stripe", stripeRouter);
+app.use("/webhooks/resend", resendRouter);
+
 app.use(cookieParser());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
@@ -42,6 +49,9 @@ const server = app.listen(port, (error?: Error) => {
   }
 
   console.log(`Server running on port ${port}`);
+  
+  // Start background workers
+  startWorkers();
 });
 
 server.ref();

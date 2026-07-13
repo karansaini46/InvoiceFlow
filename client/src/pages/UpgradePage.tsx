@@ -2,9 +2,9 @@ import { isAxiosError } from "axios";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
-import { PlanBadge } from "@/components/PlanBadge";
+import { Layout } from "@/components/Layout";
+import { Card } from "@/components/Card";
 import { paymentApi } from "@/lib/api/payment";
-import { Page } from "@/pages/Page";
 import { useAuthStore } from "@/store/auth";
 
 export function UpgradePage() {
@@ -18,38 +18,24 @@ export function UpgradePage() {
 
   useEffect(() => {
     let mounted = true;
-
     const loadStatus = async () => {
       try {
         setLoading(true);
         const status = await paymentApi.getStatus();
-
-        if (!mounted) {
-          return;
-        }
-
+        if (!mounted) return;
         setCurrentPlan(status.plan);
         setPlan(status.plan);
         setMessage(status.plan === "pro" ? "You're already on Pro." : null);
         setError(null);
       } catch (err) {
-        if (!mounted) {
-          return;
-        }
-
+        if (!mounted) return;
         setError("Unable to load your plan.");
-        console.error("Error loading payment status:", err);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
-
     void loadStatus();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [setPlan]);
 
   const handleUpgrade = async () => {
@@ -57,7 +43,6 @@ export function UpgradePage() {
       setUpgrading(true);
       setMessage(null);
       setError(null);
-
       const result = await paymentApi.mockUpgrade();
       setCurrentPlan(result.plan);
       setPlan(result.plan);
@@ -68,64 +53,56 @@ export function UpgradePage() {
       } else {
         setError("Unable to upgrade plan.");
       }
-
-      console.error("Error upgrading plan:", err);
     } finally {
       setUpgrading(false);
     }
   };
 
   return (
-    <Page title="Upgrade">
-      <div className="grid max-w-4xl gap-4 lg:grid-cols-2">
-        <article className="card p-6">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase text-[var(--text-3)]">Free</span>
-            <PlanBadge plan="free" />
+    <Layout title="Plans & Billing">
+      <div className="grid grid-cols-2 gap-8 max-w-4xl">
+        
+        <Card style={{ padding: '32px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-h3">Free</h3>
+            {currentPlan === "free" && <span className="badge">Current Plan</span>}
           </div>
-          <p className="mono mt-2 text-[24px] font-medium text-[var(--text-1)]">$0</p>
-          <p className="mt-1 text-[12px] text-[var(--text-2)]">Get started, no commitment.</p>
-          <ul className="mt-4 space-y-2 text-[12px] text-[var(--text-2)]">
-            {["Up to 3 invoices", "Basic invoice creation", "PDF export"].map((item) => (
-              <li className="flex gap-2" key={item}>
-                <span className="text-[var(--text-3)]">–</span>
-                {item}
-              </li>
-            ))}
+          <div className="text-h1 font-mono mb-2">$0<span className="text-body text-muted">/mo</span></div>
+          <p className="text-small text-muted mb-8">Get started, no commitment.</p>
+          
+          <ul className="flex-col gap-4 text-small mb-8" style={{ display: 'flex' }}>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--text-tertiary)' }}>—</span> Up to 3 invoices</li>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--text-tertiary)' }}>—</span> Basic invoice creation</li>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--text-tertiary)' }}>—</span> PDF export</li>
           </ul>
-        </article>
+        </Card>
 
-        <article className="card relative overflow-hidden border-[rgba(79,110,247,0.3)] p-6">
-          <div className="absolute inset-x-0 top-0 h-[3px] bg-[var(--accent)]" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase text-[var(--accent)]">Pro</span>
-            <PlanBadge plan="pro" />
+        <Card style={{ padding: '32px', borderColor: 'var(--border-focus)', backgroundColor: 'var(--bg-surface-elevated)' }}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-h3">Professional</h3>
+            {currentPlan === "pro" && <span className="badge" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>Current Plan</span>}
           </div>
-          <p className="mono mt-2 text-[24px] font-medium text-[var(--text-1)]">$29</p>
-          <p className="mt-1 text-[12px] text-[var(--text-2)]">One-time upgrade for the demo.</p>
-          <ul className="mt-4 space-y-2 text-[12px] text-[var(--text-2)]">
-            {["Unlimited invoices", "Proposals & PDF export", "Priority features", "Instant activation"].map(
-              (item) => (
-                <li className="flex gap-2" key={item}>
-                  <span className="text-[var(--green)]">✓</span>
-                  {item}
-                </li>
-              ),
-            )}
+          <div className="text-h1 font-mono mb-2">$29<span className="text-body text-muted">/mo</span></div>
+          <p className="text-small text-muted mb-8">For growing agencies and businesses.</p>
+          
+          <ul className="flex-col gap-4 text-small mb-8" style={{ display: 'flex' }}>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--success-text)' }}>✓</span> Unlimited invoices</li>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--success-text)' }}>✓</span> Proposals & PDF export</li>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--success-text)' }}>✓</span> Automated reminders</li>
+            <li className="flex gap-3 items-center"><span style={{ color: 'var(--success-text)' }}>✓</span> AI Insights</li>
           </ul>
 
-          {error ? <div className="card error-state mt-5">⚠ {error}</div> : null}
-          {message ? <p className="mt-5 text-[12px] text-[var(--green)]">{message}</p> : null}
+          {error && <div style={{ padding: '12px 16px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>{error}</div>}
+          {message && <div style={{ color: 'var(--success-text)', fontSize: '13px', marginBottom: '16px', textAlign: 'center', fontWeight: 500 }}>{message}</div>}
 
-          {currentPlan === "pro" ? (
-            <p className="mt-5 text-[13px] font-medium text-[var(--green)]">You&apos;re on Pro</p>
-          ) : (
-            <Button className="mt-5 w-full" loading={loading || upgrading} onClick={handleUpgrade} size="lg">
+          {currentPlan !== "pro" && (
+            <Button className="w-full" loading={loading || upgrading} onClick={handleUpgrade} size="lg" variant="primary">
               Upgrade to Pro
             </Button>
           )}
-        </article>
+        </Card>
+
       </div>
-    </Page>
+    </Layout>
   );
 }

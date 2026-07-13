@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import type { FollowUpRule } from "@/types/invoice";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -79,5 +80,15 @@ export const settingsApi = {
 
   deleteAccount: async (): Promise<void> => {
     await api.delete("/settings/account");
+  },
+
+  getFollowUpDefaults: async (): Promise<{ rules: FollowUpRule[] }> => {
+    const response = await api.get("/settings/follow-up-defaults");
+    return response.data;
+  },
+
+  updateFollowUpDefaults: async (rules: { offsetDays: number; enabled: boolean }[]): Promise<{ rules: FollowUpRule[] }> => {
+    const response = await api.put("/settings/follow-up-defaults", { rules });
+    return response.data;
   },
 };

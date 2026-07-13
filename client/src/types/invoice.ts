@@ -1,4 +1,4 @@
-export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE";
+export type InvoiceStatus = "DRAFT" | "SCHEDULED" | "SENT" | "VIEWED" | "PAID" | "OVERDUE" | "CANCELLED";
 export type ProposalStatus = "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED";
 
 export interface LineItem {
@@ -25,6 +25,11 @@ export interface Invoice {
   taxRate: number;
   taxAmount: number;
   total: number;
+  scheduledSendAt: string | null;
+  sentAt: string | null;
+  paidAt: string | null;
+  stripeCheckoutSessionId: string | null;
+  stripePaymentIntentId: string | null;
   createdAt: string;
   updatedAt: string;
   lineItems: LineItem[];
@@ -84,3 +89,21 @@ export interface CreateProposalData {
 export type UpdateProposalData = Partial<CreateProposalData> & {
   status?: ProposalStatus;
 };
+
+export interface FollowUpRule {
+  id: string;
+  invoiceId: string | null;
+  userId: string;
+  offsetDays: number;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface FollowUpLog {
+  id: string;
+  invoiceId: string;
+  ruleId: string;
+  sentAt: string;
+  bullmqJobId: string;
+  resendMessageId: string | null;
+}

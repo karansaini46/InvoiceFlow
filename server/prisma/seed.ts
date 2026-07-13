@@ -18,9 +18,10 @@ async function main() {
       email: "demo@invoiceflow.local",
     },
     update: {
-      name: "Demo User",
+      name: "Alex Vance",
+      businessName: "Horizon Digital Inc.",
       passwordHash: "$2b$12$demoPasswordHashForLocalSeedData",
-      plan: "FREE",
+      plan: "PRO",
       stripeCustomerId: null,
       invoices: {
         deleteMany: {},
@@ -32,44 +33,61 @@ async function main() {
     create: {
       email: "demo@invoiceflow.local",
       passwordHash: "$2b$12$demoPasswordHashForLocalSeedData",
-      name: "Demo User",
-      plan: "FREE",
+      name: "Alex Vance",
+      businessName: "Horizon Digital Inc.",
+      plan: "PRO",
     },
   });
 
   await prisma.invoice.createMany({
     data: [
       {
-        number: "INV-1001",
+        number: "INV-2026-042",
         userId: user.id,
-        clientName: "Acme Studio",
-        clientEmail: "billing@acmestudio.local",
-        clientAddress: "100 Market Street, San Francisco, CA 94105",
-        issueDate: new Date("2026-05-01T00:00:00.000Z"),
-        dueDate: new Date("2026-05-15T00:00:00.000Z"),
-        status: "SENT",
+        clientName: "Aura Dynamics Ltd.",
+        clientEmail: "accounts@auradynamics.dev",
+        clientAddress: "770 Broadway, New York, NY 10003",
+        issueDate: new Date("2026-06-10T00:00:00.000Z"),
+        dueDate: new Date("2026-06-24T00:00:00.000Z"),
+        status: "PAID",
         currency: "USD",
-        notes: "Payment due within 14 days.",
-        subtotal: 1500,
-        taxRate: 8.25,
-        taxAmount: 123.75,
-        total: 1623.75,
-      },
-      {
-        number: "INV-1002",
-        userId: user.id,
-        clientName: "Northstar Labs",
-        clientEmail: "accounts@northstarlabs.local",
-        clientAddress: "42 Innovation Drive, Austin, TX 78701",
-        issueDate: new Date("2026-05-05T00:00:00.000Z"),
-        dueDate: new Date("2026-05-19T00:00:00.000Z"),
-        status: "DRAFT",
-        currency: "USD",
-        notes: "Draft invoice for review.",
-        subtotal: 2400,
+        notes: "Payment secured via wire transfer. Thank you for your business.",
+        subtotal: 57500,
         taxRate: 0,
         taxAmount: 0,
-        total: 2400,
+        total: 57500,
+      },
+      {
+        number: "INV-2026-043",
+        userId: user.id,
+        clientName: "Quantum Inc.",
+        clientEmail: "finance@quantum.ai",
+        clientAddress: "1200 Innovation Way, Palo Alto, CA 94301",
+        issueDate: new Date("2026-07-01T00:00:00.000Z"),
+        dueDate: new Date("2026-07-15T00:00:00.000Z"),
+        status: "SENT",
+        currency: "USD",
+        notes: "Due on receipt. Please initiate ACH transfer.",
+        subtotal: 125000,
+        taxRate: 8.5,
+        taxAmount: 10625,
+        total: 135625,
+      },
+      {
+        number: "INV-2026-044",
+        userId: user.id,
+        clientName: "Nexus Ventures",
+        clientEmail: "billing@nexusvc.com",
+        clientAddress: "One World Trade Center, New York, NY 10007",
+        issueDate: new Date("2026-07-10T00:00:00.000Z"),
+        dueDate: new Date("2026-08-10T00:00:00.000Z"),
+        status: "DRAFT",
+        currency: "USD",
+        notes: "Draft invoice for Q3 Retainer.",
+        subtotal: 45000,
+        taxRate: 0,
+        taxAmount: 0,
+        total: 45000,
       },
     ],
   });
@@ -85,42 +103,50 @@ async function main() {
   });
 
   const invoiceIds = new Map(invoices.map((invoice) => [invoice.number, invoice.id]));
-  const firstInvoiceId = invoiceIds.get("INV-1001");
-  const secondInvoiceId = invoiceIds.get("INV-1002");
+  const inv1 = invoiceIds.get("INV-2026-042");
+  const inv2 = invoiceIds.get("INV-2026-043");
+  const inv3 = invoiceIds.get("INV-2026-044");
 
-  if (!firstInvoiceId || !secondInvoiceId) {
+  if (!inv1 || !inv2 || !inv3) {
     throw new Error("Seed invoices were not created.");
   }
 
   await prisma.lineItem.createMany({
     data: [
       {
-        invoiceId: firstInvoiceId,
-        description: "Invoice template setup",
+        invoiceId: inv1,
+        description: "Enterprise Infrastructure Setup",
         quantity: 1,
-        unitPrice: 600,
-        amount: 600,
+        unitPrice: 45000,
+        amount: 45000,
       },
       {
-        invoiceId: firstInvoiceId,
-        description: "Billing workflow implementation",
+        invoiceId: inv1,
+        description: "Annual Maintenance Contract",
+        quantity: 1,
+        unitPrice: 12500,
+        amount: 12500,
+      },
+      {
+        invoiceId: inv2,
+        description: "Data Warehouse Migration Phase 1",
+        quantity: 1,
+        unitPrice: 85000,
+        amount: 85000,
+      },
+      {
+        invoiceId: inv2,
+        description: "Machine Learning Pipeline Optimization",
+        quantity: 2,
+        unitPrice: 20000,
+        amount: 40000,
+      },
+      {
+        invoiceId: inv3,
+        description: "Q3 Strategic Advisory Retainer",
         quantity: 3,
-        unitPrice: 300,
-        amount: 900,
-      },
-      {
-        invoiceId: secondInvoiceId,
-        description: "Proposal drafting",
-        quantity: 4,
-        unitPrice: 250,
-        amount: 1000,
-      },
-      {
-        invoiceId: secondInvoiceId,
-        description: "Client portal planning",
-        quantity: 7,
-        unitPrice: 200,
-        amount: 1400,
+        unitPrice: 15000,
+        amount: 45000,
       },
     ],
   });

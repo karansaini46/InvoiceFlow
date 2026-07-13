@@ -44,7 +44,7 @@ const updateInvoiceSchema = z.object({
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(["DRAFT", "SENT", "PAID", "OVERDUE"]),
+  status: z.enum(["DRAFT", "SCHEDULED", "SENT", "VIEWED", "PAID", "OVERDUE", "CANCELLED"]),
 });
 
 const getRouteId = (req: Request) => {

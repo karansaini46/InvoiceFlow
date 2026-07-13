@@ -6,14 +6,12 @@ import { z } from "zod";
 import { Button } from "@/components/Button";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Toast } from "@/components/Toast";
+import { Layout } from "@/components/Layout";
+import { Card } from "@/components/Card";
+import { Input } from "@/components/Input";
 import { useToast } from "@/hooks/useToast";
-import {
-  settingsApi,
-  type PasswordChangeData,
-  type ProfileUpdateData,
-  type UserProfile,
-} from "@/lib/api/settings";
-import { Page } from "@/pages/Page";
+import { settingsApi, type PasswordChangeData, type ProfileUpdateData, type UserProfile } from "@/lib/api/settings";
+import type { FollowUpRule } from "@/types/invoice";
 
 const profileSchema = z.object({
   businessAddress: z.string().optional(),
@@ -27,32 +25,19 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  currentPassword: z.string().min(1, "Required"),
+  newPassword: z.string().min(8, "Must be at least 8 characters"),
 });
 
 type ProfileFormValues = z.input<typeof profileSchema>;
 type PasswordFormValues = z.input<typeof passwordSchema>;
-type Tab = "business" | "defaults" | "security";
+type Tab = "business" | "defaults" | "followups" | "security";
 
-const currencies = [
-  { code: "USD", symbol: "$" },
-  { code: "EUR", symbol: "€" },
-  { code: "GBP", symbol: "£" },
-  { code: "INR", symbol: "₹" },
-];
-
+const currencies = [{ code: "USD", symbol: "$" }, { code: "EUR", symbol: "€" }, { code: "GBP", symbol: "£" }, { code: "INR", symbol: "₹" }];
 const paymentTerms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"];
 
 function initials(value?: string) {
-  return (
-    value
-      ?.trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "U"
-  );
+  return value?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "U";
 }
 
 export function SettingsPage() {
@@ -63,87 +48,66 @@ export function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [savedSection, setSavedSection] = useState<Tab | null>(null);
-  const savedTimer = useRef<number | null>(null);
+  const [followUpRules, setFollowUpRules] = useState<FollowUpRule[]>([]);
+  const [followUpLoading, setFollowUpLoading] = useState(false);
   const { dismissToast, showToast, toasts } = useToast();
 
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-  });
-
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
-  });
+  const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
+  const passwordForm = useForm<PasswordFormValues>({ resolver: zodResolver(passwordSchema) });
 
   const businessName = profileForm.watch("businessName");
-  const avatarInitials = useMemo(
-    () => initials(businessName || profile?.name || profile?.email),
-    [businessName, profile],
-  );
+  const avatarInitials = useMemo(() => initials(businessName || profile?.name || profile?.email), [businessName, profile]);
 
-  useEffect(() => {
-    void loadProfile();
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (savedTimer.current !== null) {
-        window.clearTimeout(savedTimer.current);
-      }
-    },
-    [],
-  );
-
-  const markSaved = (section: Tab) => {
-    setSavedSection(section);
-    if (savedTimer.current !== null) {
-      window.clearTimeout(savedTimer.current);
-    }
-    savedTimer.current = window.setTimeout(() => setSavedSection(null), 2000);
-  };
+  useEffect(() => { void loadProfile(); void loadFollowUps(); }, []);
 
   const loadProfile = async () => {
     try {
       const data = await settingsApi.getProfile();
       setProfile(data);
       profileForm.reset({
-        businessAddress: data.businessAddress || "",
-        businessName: data.businessName || "",
-        businessPhone: data.businessPhone || "",
-        businessWebsite: data.businessWebsite || "",
-        defaultCurrency: data.defaultCurrency,
-        defaultNotes: data.defaultNotes || "",
-        defaultPaymentTerms: data.defaultPaymentTerms,
-        defaultTaxRate: data.defaultTaxRate,
+        businessAddress: data.businessAddress || "", businessName: data.businessName || "",
+        businessPhone: data.businessPhone || "", businessWebsite: data.businessWebsite || "",
+        defaultCurrency: data.defaultCurrency, defaultNotes: data.defaultNotes || "",
+        defaultPaymentTerms: data.defaultPaymentTerms, defaultTaxRate: data.defaultTaxRate,
       });
-    } catch (error) {
-      showToast("Failed to load profile", "error");
-    }
+    } catch { showToast("Failed to load profile", "error"); }
+  };
+
+  const loadFollowUps = async () => {
+    try {
+      const data = await settingsApi.getFollowUpDefaults();
+      setFollowUpRules(data.rules);
+    } catch { showToast("Failed to load follow-ups", "error"); }
+  };
+
+  const handleUpdateFollowUpRule = (index: number, field: keyof FollowUpRule, value: any) => {
+    const newRules = [...followUpRules];
+    newRules[index] = { ...newRules[index], [field]: value };
+    setFollowUpRules(newRules);
+  };
+
+  const handleSaveFollowUps = async () => {
+    setFollowUpLoading(true);
+    try {
+      const payload = followUpRules.map(r => ({ offsetDays: r.offsetDays, enabled: r.enabled }));
+      const response = await settingsApi.updateFollowUpDefaults(payload);
+      setFollowUpRules(response.rules);
+      showToast("Follow-ups updated", "success");
+    } catch { showToast("Failed to update follow-ups", "error"); }
+    finally { setFollowUpLoading(false); }
   };
 
   const handleProfileSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     setLoading(true);
     try {
-      if (logoFile) {
-        await settingsApi.uploadLogo(logoFile);
-      }
-
-      const updateData: ProfileUpdateData = {
-        ...data,
-        businessWebsite: data.businessWebsite || undefined,
-      };
-
+      if (logoFile) await settingsApi.uploadLogo(logoFile);
+      const updateData: ProfileUpdateData = { ...data, businessWebsite: data.businessWebsite || undefined };
       const updatedProfile = await settingsApi.updateProfile(updateData);
       setProfile(updatedProfile);
-      showToast("Profile updated successfully", "success");
-      markSaved(activeTab);
-      setLogoFile(null);
-      setLogoPreview("");
-    } catch (error) {
-      showToast("Failed to update profile", "error");
-    } finally {
-      setLoading(false);
-    }
+      showToast("Profile updated", "success");
+      setLogoFile(null); setLogoPreview("");
+    } catch { showToast("Failed to update profile", "error"); }
+    finally { setLoading(false); }
   };
 
   const handlePasswordSubmit: SubmitHandler<PasswordFormValues> = async (data) => {
@@ -151,27 +115,19 @@ export function SettingsPage() {
     try {
       await settingsApi.changePassword(data as PasswordChangeData);
       passwordForm.reset();
-      showToast("Password changed successfully", "success");
-      markSaved("security");
-    } catch (error) {
-      showToast("Failed to change password", "error");
-    } finally {
-      setLoading(false);
-    }
+      showToast("Password changed", "success");
+    } catch { showToast("Failed to change password", "error"); }
+    finally { setLoading(false); }
   };
 
   const handleDeleteAccount = async () => {
-    setDeleteOpen(false);
-    setLoading(true);
+    setDeleteOpen(false); setLoading(true);
     try {
       await settingsApi.deleteAccount();
-      showToast("Account deleted successfully", "success");
+      showToast("Account deleted", "success");
       window.location.href = "/register";
-    } catch (error) {
-      showToast("Failed to delete account", "error");
-    } finally {
-      setLoading(false);
-    }
+    } catch { showToast("Failed to delete account", "error"); }
+    finally { setLoading(false); }
   };
 
   const handleLogoChange = (file: File) => {
@@ -183,270 +139,201 @@ export function SettingsPage() {
     }
   };
 
-  const handleDrag = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.type === "dragenter" || event.type === "dragover") {
-      setDragActive(true);
-    } else if (event.type === "dragleave") {
-      setDragActive(false);
-    }
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragActive(false);
-
-    if (event.dataTransfer.files?.[0]) {
-      handleLogoChange(event.dataTransfer.files[0]);
-    }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+    if (e.dataTransfer.files?.[0]) handleLogoChange(e.dataTransfer.files[0]);
   };
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "business", label: "Business" },
     { id: "defaults", label: "Defaults" },
+    { id: "followups", label: "Follow-ups" },
     { id: "security", label: "Security" },
   ];
 
   return (
-    <Page title="Settings">
-      <div className="max-w-4xl space-y-4">
-        <div className="flex flex-wrap gap-1 border-b border-[var(--border)]">
-          {tabs.map((tab) => (
+    <Layout title="Settings">
+      <div className="flex-col gap-6" style={{ display: 'flex', maxWidth: '960px' }}>
+        
+        <div className="flex gap-4" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '2px' }}>
+          {tabs.map(tab => (
             <button
-              className={`btn btn-ghost rounded-none border-b-2 px-3 py-2 ${
-                activeTab === tab.id
-                  ? "border-[var(--accent)] text-[var(--text-1)]"
-                  : "border-transparent text-[var(--text-2)]"
-              }`}
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              type="button"
+              className="text-small font-medium pb-2"
+              style={{
+                color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                borderBottom: activeTab === tab.id ? '2px solid var(--text-primary)' : '2px solid transparent',
+                transition: 'color 0.2s ease, border-color 0.2s ease',
+              }}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {activeTab === "business" ? (
-          <form className="space-y-4" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
-            <section className="card p-5">
-              <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="mono flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-3)] text-xs text-[var(--text-2)]">
-                    {avatarInitials}
-                  </span>
-                  <h2 className="text-[14px] font-medium text-[var(--text-1)]">Business profile</h2>
-                </div>
-                {savedSection === "business" ? <span className="text-[11px] text-[var(--green)]">Saved</span> : null}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="label">Business Name</label>
-                  <input className="input" type="text" {...profileForm.register("businessName")} />
+        {activeTab === "business" && (
+          <form className="flex-col gap-6" style={{ display: 'flex' }} onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
+            <Card>
+              <div className="flex items-center gap-4 mb-6">
+                <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--bg-surface-elevated)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}>
+                  {avatarInitials}
                 </div>
                 <div>
-                  <label className="label">Business Phone</label>
-                  <input className="input" type="tel" {...profileForm.register("businessPhone")} />
+                  <h3 className="text-h2 font-display" style={{ fontSize: '24px', margin: 0, marginBottom: '4px' }}>Business Profile</h3>
+                  <p className="text-small text-muted">Update your company details and branding.</p>
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label className="label">Business Address</label>
-                <textarea className="input" rows={3} {...profileForm.register("businessAddress")} />
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <Input label="Business Name" placeholder="Company LLC" {...profileForm.register("businessName")} />
+                <Input label="Business Phone" type="tel" placeholder="+1 (555) 000-0000" {...profileForm.register("businessPhone")} />
               </div>
-
-              <div className="mt-4">
-                <label className="label">Business Website</label>
-                <input className="input" placeholder="https://example.com" type="url" {...profileForm.register("businessWebsite")} />
+              <div className="mb-4">
+                <label className="text-small font-medium text-muted block mb-1">Business Address</label>
+                <textarea 
+                  className="w-full"
+                  rows={3} 
+                  style={{ padding: '8px 12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-base)', outline: 'none' }}
+                  {...profileForm.register("businessAddress")} 
+                />
               </div>
-            </section>
-
-            <section className="card p-5">
-              <div className="mb-5 border-b border-[var(--border)] pb-3">
-                <h2 className="text-[14px] font-medium text-[var(--text-1)]">Logo</h2>
+              <div>
+                <Input label="Business Website" type="url" placeholder="https://example.com" {...profileForm.register("businessWebsite")} />
               </div>
+            </Card>
 
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="shrink-0">
+            <Card>
+              <h3 className="text-h2 font-display mb-6" style={{ fontSize: '24px' }}>Logo</h3>
+              <div className="flex gap-6 items-start">
+                <div style={{ width: '100px', height: '100px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', overflow: 'hidden', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {logoPreview || profile?.logoUrl ? (
-                    <img
-                      alt="Logo preview"
-                      className="h-20 w-20 rounded-md border border-[var(--border)] object-cover"
-                      src={logoPreview || profile?.logoUrl}
-                    />
+                    <img src={logoPreview || profile?.logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-2)] text-xs text-[var(--text-3)]">
-                      No logo
-                    </div>
+                    <span className="text-small text-muted">No logo</span>
                   )}
                 </div>
-
-                <div
-                  className="flex-1 rounded-md border border-dashed p-5 text-center transition-colors"
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  style={{
-                    background: dragActive ? "var(--accent-dim)" : "var(--bg-2)",
-                    borderColor: dragActive ? "var(--accent)" : "var(--border)",
-                  }}
+                <label 
+                  htmlFor="logo-upload"
+                  onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+                  style={{ cursor: 'pointer', flex: 1, border: `1px dashed ${dragActive ? 'var(--text-primary)' : 'var(--border-strong)'}`, borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', backgroundColor: dragActive ? 'var(--bg-surface-elevated)' : 'transparent', transition: 'all 0.2s ease' }}
                 >
-                  <input
-                    accept="image/*"
-                    className="hidden"
-                    id="logo-upload"
-                    onChange={(event) => event.target.files?.[0] && handleLogoChange(event.target.files[0])}
-                    type="file"
-                  />
-                  <label className="cursor-pointer text-xs text-[var(--text-2)]" htmlFor="logo-upload">
-                    Drag and drop your logo here, or click to browse
-                  </label>
-                  <p className="mt-1 text-[11px] text-[var(--text-3)]">PNG, JPG, GIF up to 5MB</p>
-                </div>
+                  <input type="file" id="logo-upload" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleLogoChange(e.target.files[0])} />
+                  <span className="text-small font-medium cursor-pointer mb-2 block">Click to upload or drag and drop</span>
+                  <p className="text-small text-muted">PNG, JPG, GIF up to 5MB</p>
+                </label>
               </div>
-            </section>
+            </Card>
 
             <div className="flex justify-end">
-              <Button loading={loading} size="sm" type="submit">
-                Save changes
-              </Button>
+              <Button loading={loading} type="submit" variant="primary">Save Changes</Button>
             </div>
           </form>
-        ) : null}
+        )}
 
-        {activeTab === "defaults" ? (
-          <form className="space-y-4" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
-            <section className="card p-5">
-              <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <h2 className="text-[14px] font-medium text-[var(--text-1)]">Invoice defaults</h2>
-                {savedSection === "defaults" ? <span className="text-[11px] text-[var(--green)]">Saved</span> : null}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
+        {activeTab === "defaults" && (
+          <form className="flex-col gap-6" style={{ display: 'flex' }} onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
+            <Card>
+              <h3 className="text-h2 font-display mb-6" style={{ fontSize: '24px' }}>Invoice Defaults</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="label">Default Currency</label>
-                  <select className="input" {...profileForm.register("defaultCurrency")}>
-                    {currencies.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.code} ({currency.symbol})
-                      </option>
-                    ))}
+                  <label className="text-small font-medium text-muted block mb-1">Default Currency</label>
+                  <select className="w-full" style={{ height: '36px', padding: '0 12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-base)', outline: 'none' }} {...profileForm.register("defaultCurrency")}>
+                    {currencies.map(c => <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="label">Default Tax Rate (%)</label>
-                  <input
-                    className="input"
-                    max="100"
-                    min="0"
-                    step="0.1"
-                    type="number"
-                    {...profileForm.register("defaultTaxRate", { valueAsNumber: true })}
-                  />
-                </div>
+                <Input label="Default Tax Rate (%)" type="number" step="0.1" {...profileForm.register("defaultTaxRate", { valueAsNumber: true })} />
               </div>
-
-              <div className="mt-4">
-                <label className="label">Default Payment Terms</label>
-                <select className="input" {...profileForm.register("defaultPaymentTerms")}>
-                  {paymentTerms.map((term) => (
-                    <option key={term} value={term}>
-                      {term}
-                    </option>
-                  ))}
+              <div className="mb-4">
+                <label className="text-small font-medium text-muted block mb-1">Default Payment Terms</label>
+                <select className="w-full" style={{ height: '36px', padding: '0 12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-base)', outline: 'none' }} {...profileForm.register("defaultPaymentTerms")}>
+                  {paymentTerms.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
-              <div className="mt-4">
-                <label className="label">Default Notes</label>
-                <textarea
-                  className="input"
-                  placeholder="Thank you for your business."
+              <div>
+                <label className="text-small font-medium text-muted block mb-1">Default Notes</label>
+                <textarea 
+                  className="w-full"
                   rows={4}
+                  style={{ padding: '8px 12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-base)', outline: 'none' }}
                   {...profileForm.register("defaultNotes")}
                 />
               </div>
-            </section>
-
+            </Card>
             <div className="flex justify-end">
-              <Button loading={loading} size="sm" type="submit">
-                Save changes
-              </Button>
+              <Button loading={loading} type="submit" variant="primary">Save Changes</Button>
             </div>
           </form>
-        ) : null}
+        )}
 
-        {activeTab === "security" ? (
-          <div className="space-y-4">
-            <section className="card p-5">
-              <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <h2 className="text-[14px] font-medium text-[var(--text-1)]">Security</h2>
-                {savedSection === "security" ? <span className="text-[11px] text-[var(--green)]">Saved</span> : null}
+        {activeTab === "followups" && (
+          <div className="flex-col gap-6" style={{ display: 'flex' }}>
+            <Card>
+              <h3 className="text-h2 font-display mb-2" style={{ fontSize: '24px' }}>Automated Follow-ups</h3>
+              <p className="text-small text-muted mb-6">Configure default reminders for unpaid invoices.</p>
+              
+              <div className="grid grid-cols-3 gap-4">
+                {followUpRules.map((rule, i) => (
+                  <div key={i} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-small font-medium">Reminder {i + 1}</span>
+                      <input type="checkbox" checked={rule.enabled} onChange={e => handleUpdateFollowUpRule(i, "enabled", e.target.checked)} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" style={{ width: '60px', marginBottom: 0, textAlign: 'center' }} value={rule.offsetDays} onChange={e => handleUpdateFollowUpRule(i, "offsetDays", parseInt(e.target.value) || 0)} disabled={!rule.enabled} />
+                      <span className="text-small text-muted">days after due</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <form className="space-y-4" onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}>
-                <div>
-                  <label className="label">Current Password</label>
-                  <input className="input" type="password" {...passwordForm.register("currentPassword")} />
-                  {passwordForm.formState.errors.currentPassword ? (
-                    <p className="field-error">{passwordForm.formState.errors.currentPassword.message}</p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label className="label">New Password</label>
-                  <input className="input" type="password" {...passwordForm.register("newPassword")} />
-                  {passwordForm.formState.errors.newPassword ? (
-                    <p className="field-error">{passwordForm.formState.errors.newPassword.message}</p>
-                  ) : null}
-                </div>
-
-                <div className="flex justify-end">
-                  <Button loading={loading} size="sm" type="submit">
-                    Change password
-                  </Button>
-                </div>
-              </form>
-            </section>
-
-            <section className="card border-[rgba(239,68,68,0.25)] bg-[var(--red-dim)] p-5">
-              <div className="mb-4 border-b border-[rgba(239,68,68,0.18)] pb-3">
-                <h2 className="text-[14px] font-medium text-[var(--text-1)]">Danger zone</h2>
-              </div>
-              <p className="text-[13px] font-medium text-[var(--red)]">Delete account</p>
-              <p className="mt-1 text-[12px] text-[var(--text-2)]">
-                Once you delete your account, there is no going back.
-              </p>
-              <Button className="mt-4" loading={loading} onClick={() => setDeleteOpen(true)} size="sm" variant="danger">
-                Delete account
-              </Button>
-            </section>
+            </Card>
+            <div className="flex justify-end">
+              <Button loading={followUpLoading} onClick={handleSaveFollowUps} variant="primary">Save Changes</Button>
+            </div>
           </div>
-        ) : null}
+        )}
+
+        {activeTab === "security" && (
+          <div className="flex-col gap-6" style={{ display: 'flex' }}>
+            <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}>
+              <Card>
+                <h3 className="text-h2 font-display mb-6" style={{ fontSize: '24px' }}>Change Password</h3>
+                <div className="flex-col gap-4 mb-6">
+                  <Input label="Current Password" type="password" error={passwordForm.formState.errors.currentPassword?.message} {...passwordForm.register("currentPassword")} />
+                  <Input label="New Password" type="password" error={passwordForm.formState.errors.newPassword?.message} {...passwordForm.register("newPassword")} />
+                </div>
+                <div className="flex justify-end">
+                  <Button loading={loading} type="submit" variant="primary">Update Password</Button>
+                </div>
+              </Card>
+            </form>
+
+            <Card style={{ backgroundColor: 'var(--error-bg)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+              <h3 className="text-h2 font-display mb-2" style={{ color: 'var(--error-text)', fontSize: '24px' }}>Danger Zone</h3>
+              <p className="text-small mb-4" style={{ color: 'rgba(239, 68, 68, 0.8)' }}>Once you delete your account, there is no going back. Please be certain.</p>
+              <Button onClick={() => setDeleteOpen(true)} variant="secondary" style={{ color: 'var(--error-text)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>Delete Account</Button>
+            </Card>
+          </div>
+        )}
       </div>
 
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          onDismiss={() => dismissToast(toast.id)}
-          type={toast.type}
-        />
-      ))}
-
+      {toasts.map(toast => <Toast key={toast.id} message={toast.message} type={toast.type} onDismiss={() => dismissToast(toast.id)} />)}
+      
       <ConfirmModal
-        confirmLabel="Delete account"
-        destructive
-        message="Delete your account? This cannot be undone."
-        onCancel={() => setDeleteOpen(false)}
-        onConfirm={() => void handleDeleteAccount()}
         open={deleteOpen}
-        title="Delete account"
+        title="Delete Account"
+        message="Are you sure you want to delete your account? All data will be permanently erased."
+        confirmLabel="Delete Account"
+        destructive
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
       />
-    </Page>
+    </Layout>
   );
 }

@@ -1,0 +1,121 @@
+src/queues/followUpQueue.ts(16,5): error TS2322: Type 'Queue<FollowUpJobData, any, string, ExtractDataType<DataTypeOrJob, DataTypeOrJob>, ExtractResultType<DataTypeOrJob, DefaultResultType>, ExtractNameType<...>>' is not assignable to type 'Queue<FollowUpJobData, any, string, FollowUpJobData, any, string>'.
+  Types of property 'add' are incompatible.
+    Type '(name: ExtractNameType<DataTypeOrJob, DefaultNameType>, data: ExtractDataType<DataTypeOrJob, DataTypeOrJob>, opts?: JobsOptions | undefined) => Promise<...>' is not assignable to type '(name: string, data: FollowUpJobData, opts?: JobsOptions | undefined) => Promise<Job<FollowUpJobData, any, string>>'.
+      Types of parameters 'data' and 'data' are incompatible.
+        Type 'FollowUpJobData' is not assignable to type 'ExtractDataType<DataTypeOrJob, DataTypeOrJob>'.
+src/queues/followUpQueue.ts(17,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.
+src/queues/followUpQueue.ts(21,3): error TS2322: Type 'Queue<FollowUpJobData, any, string, FollowUpJobData, any, string> | null' is not assignable to type 'Queue<FollowUpJobData, any, string, FollowUpJobData, any, string>'.
+  Type 'null' is not assignable to type 'Queue<FollowUpJobData, any, string, FollowUpJobData, any, string>'.
+src/queues/overdueCheckQueue.ts(15,5): error TS2322: Type 'Queue<OverdueCheckJobData, any, string, ExtractDataType<DataTypeOrJob, DataTypeOrJob>, ExtractResultType<DataTypeOrJob, DefaultResultType>, ExtractNameType<...>>' is not assignable to type 'Queue<OverdueCheckJobData, any, string, OverdueCheckJobData, any, string>'.
+  Types of property 'add' are incompatible.
+    Type '(name: ExtractNameType<DataTypeOrJob, DefaultNameType>, data: ExtractDataType<DataTypeOrJob, DataTypeOrJob>, opts?: JobsOptions | undefined) => Promise<...>' is not assignable to type '(name: string, data: OverdueCheckJobData, opts?: JobsOptions | undefined) => Promise<Job<OverdueCheckJobData, any, string>>'.
+      Types of parameters 'data' and 'data' are incompatible.
+        Type 'OverdueCheckJobData' is not assignable to type 'ExtractDataType<DataTypeOrJob, DataTypeOrJob>'.
+src/queues/overdueCheckQueue.ts(16,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.
+src/queues/overdueCheckQueue.ts(20,3): error TS2322: Type 'Queue<OverdueCheckJobData, any, string, OverdueCheckJobData, any, string> | null' is not assignable to type 'Queue<OverdueCheckJobData, any, string, OverdueCheckJobData, any, string>'.
+  Type 'null' is not assignable to type 'Queue<OverdueCheckJobData, any, string, OverdueCheckJobData, any, string>'.
+src/queues/sendInvoiceQueue.ts(15,5): error TS2322: Type 'Queue<SendInvoiceJobData, any, string, ExtractDataType<DataTypeOrJob, DataTypeOrJob>, ExtractResultType<DataTypeOrJob, DefaultResultType>, ExtractNameType<...>>' is not assignable to type 'Queue<SendInvoiceJobData, any, string, SendInvoiceJobData, any, string>'.
+  Types of property 'add' are incompatible.
+    Type '(name: ExtractNameType<DataTypeOrJob, DefaultNameType>, data: ExtractDataType<DataTypeOrJob, DataTypeOrJob>, opts?: JobsOptions | undefined) => Promise<...>' is not assignable to type '(name: string, data: SendInvoiceJobData, opts?: JobsOptions | undefined) => Promise<Job<SendInvoiceJobData, any, string>>'.
+      Types of parameters 'data' and 'data' are incompatible.
+        Type 'SendInvoiceJobData' is not assignable to type 'ExtractDataType<DataTypeOrJob, DataTypeOrJob>'.
+src/queues/sendInvoiceQueue.ts(16,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.
+src/queues/sendInvoiceQueue.ts(20,3): error TS2322: Type 'Queue<SendInvoiceJobData, any, string, SendInvoiceJobData, any, string> | null' is not assignable to type 'Queue<SendInvoiceJobData, any, string, SendInvoiceJobData, any, string>'.
+  Type 'null' is not assignable to type 'Queue<SendInvoiceJobData, any, string, SendInvoiceJobData, any, string>'.
+src/routes/invoices.ts(389,9): error TS2322: Type '"PAID" | "DRAFT" | "SENT" | "OVERDUE" | "SCHEDULED" | "VIEWED" | "CANCELLED"' is not assignable to type 'InvoiceStatus | EnumInvoiceStatusFieldUpdateOperationsInput | undefined'.
+  Type '"SCHEDULED"' is not assignable to type 'InvoiceStatus | EnumInvoiceStatusFieldUpdateOperationsInput | undefined'.
+src/routes/scheduleController.ts(57,39): error TS2367: This comparison appears to be unintentional because the types '"PAID" | "SENT" | "OVERDUE"' and '"SCHEDULED"' have no overlap.
+src/routes/scheduleController.ts(68,9): error TS2322: Type '"SCHEDULED"' is not assignable to type 'InvoiceStatus | EnumInvoiceStatusFieldUpdateOperationsInput | undefined'.
+src/routes/scheduleController.ts(101,9): error TS2367: This comparison appears to be unintentional because the types 'InvoiceStatus' and '"SCHEDULED"' have no overlap.
+src/routes/scheduleController.ts(113,9): error TS2353: Object literal may only specify known properties, and 'scheduledSendAt' does not exist in type '(Without<InvoiceUpdateInput, InvoiceUncheckedUpdateInput> & InvoiceUncheckedUpdateInput) | (Without<...> & InvoiceUpdateInput)'.
+src/routes/webhooks.ts(51,19): error TS2352: Conversion of type 'Session | Application | BankAccount | Card | Account | ApplicationFee | FeeRefund | Balance | ... 72 more ... | ReceivedDebit' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'ReceivedDebit' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'ReceivedDebit'.
+src/routes/webhooks.ts(108,13): error TS2353: Object literal may only specify known properties, and 'stripePaymentIntentId' does not exist in type '(Without<InvoiceUpdateInput, InvoiceUncheckedUpdateInput> & InvoiceUncheckedUpdateInput) | (Without<...> & InvoiceUpdateInput)'.
+src/routes/webhooks.ts(197,20): error TS2339: Property 'emailEvent' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(25,38): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(30,19): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(38,14): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(62,37): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(72,17): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(82,17): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(95,17): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(109,16): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(116,14): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(139,16): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/followUpService.ts(146,14): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/services/stripeService.ts(39,5): error TS2322: Type '"2025-05-28.basil"' is not assignable to type '"2026-06-24.dahlia"'.
+src/services/stripeService.ts(85,5): error TS2561: Object literal may only specify known properties, but 'expires_after' does not exist in type 'SessionCreateParams'. Did you mean to write 'expires_at'?
+src/workers/followUpWorker.ts(34,36): error TS2367: This comparison appears to be unintentional because the types '"DRAFT" | "SENT" | "OVERDUE"' and '"CANCELLED"' have no overlap.
+src/workers/followUpWorker.ts(40,29): error TS2339: Property 'followUpRule' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/workers/followUpWorker.ts(52,15): error TS2339: Property 'stripeCheckoutSessionId' does not exist on type '{ user: { id: string; email: string; name: string; }; } & { number: string; status: InvoiceStatus; id: string; createdAt: Date; updatedAt: Date; userId: string; clientName: string; ... 10 more ...; paidAt: Date | null; }'.
+src/workers/followUpWorker.ts(83,16): error TS2339: Property 'followUpLog' does not exist on type 'PrismaClient<{ adapter: PrismaPg; }, never, DefaultArgs>'.
+src/workers/followUpWorker.ts(100,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.
+src/workers/overdueCheckWorker.ts(14,30): error TS2322: Type '"VIEWED"' is not assignable to type 'InvoiceStatus'.
+src/workers/overdueCheckWorker.ts(30,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.
+src/workers/sendInvoiceWorker.ts(40,36): error TS2367: This comparison appears to be unintentional because the types '"DRAFT" | "SENT" | "OVERDUE"' and '"CANCELLED"' have no overlap.
+src/workers/sendInvoiceWorker.ts(54,16): error TS2339: Property 'stripeCheckoutSessionId' does not exist on type '{ user: { id: string; email: string; name: string; businessName: string | null; }; lineItems: { id: string; invoiceId: string; description: string; quantity: number; unitPrice: number; amount: number; }[]; } & { ...; }'.
+src/workers/sendInvoiceWorker.ts(66,15): error TS2353: Object literal may only specify known properties, and 'stripeCheckoutSessionId' does not exist in type '(Without<InvoiceUpdateInput, InvoiceUncheckedUpdateInput> & InvoiceUncheckedUpdateInput) | (Without<...> & InvoiceUpdateInput)'.
+src/workers/sendInvoiceWorker.ts(70,22): error TS2339: Property 'stripeCheckoutSessionId' does not exist on type '{ user: { id: string; email: string; name: string; businessName: string | null; }; lineItems: { id: string; invoiceId: string; description: string; quantity: number; unitPrice: number; amount: number; }[]; } & { ...; }'.
+src/workers/sendInvoiceWorker.ts(104,7): error TS2353: Object literal may only specify known properties, and 'sentAt' does not exist in type '(Without<InvoiceUpdateInput, InvoiceUncheckedUpdateInput> & InvoiceUncheckedUpdateInput) | (Without<...> & InvoiceUpdateInput)'.
+src/workers/sendInvoiceWorker.ts(120,7): error TS2322: Type 'Redis' is not assignable to type 'ConnectionOptions'.
+  Type 'Redis' is not assignable to type 'ClusterOptions | Redis | IRedisClient | Cluster'.
+    Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/Redis").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis").default'.
+      Types of property 'options' are incompatible.
+        Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/redis/RedisOptions").RedisOptions'.
+          Type 'RedisOptions' is not assignable to type 'CommonRedisOptions'.
+            Types of property 'Connector' are incompatible.
+              Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default | undefined'.
+                Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/ConnectorConstructor").default'.
+                  Type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.11.1/node_modules/ioredis/built/connectors/AbstractConnector").default' is not assignable to type 'import("/home/karan/Desktop/ InvoiceFlow/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/connectors/AbstractConnector").default'.
+                    Property 'connecting' is protected but type 'AbstractConnector' is not a class derived from 'AbstractConnector'.

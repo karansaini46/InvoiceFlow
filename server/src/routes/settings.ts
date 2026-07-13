@@ -9,6 +9,7 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { getFollowUpDefaults, updateFollowUpDefaults } from "./followUpController";
 
 const router = Router();
 const uploadsDirectory = path.join(process.cwd(), "uploads");
@@ -185,5 +186,11 @@ router.delete("/account", authMiddleware, async (req: Request, res: Response) =>
 
   res.status(204).send();
 });
+
+// GET /settings/follow-up-defaults - Get user's default follow-up rules
+router.get("/follow-up-defaults", authMiddleware, getFollowUpDefaults);
+
+// PUT /settings/follow-up-defaults - Update user's default follow-up rules
+router.put("/follow-up-defaults", authMiddleware, updateFollowUpDefaults);
 
 export { router as settingsRouter };

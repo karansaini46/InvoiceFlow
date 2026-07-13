@@ -1,14 +1,12 @@
-type Status = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "ACCEPTED" | "DECLINED";
+interface StatusBadgeProps {
+  status: string;
+}
 
-const map: Record<Status, string> = {
-  ACCEPTED: "badge badge-accepted",
-  DECLINED: "badge badge-declined",
-  DRAFT: "badge badge-draft",
-  OVERDUE: "badge badge-overdue",
-  PAID: "badge badge-paid",
-  SENT: "badge badge-sent",
-};
-
-export function StatusBadge({ status }: { status: string }) {
-  return <span className={map[status as Status] ?? "badge badge-draft"}>{status}</span>;
+export function StatusBadge({ status }: StatusBadgeProps) {
+  const normalizedStatus = status.toLowerCase();
+  return (
+    <span className={`badge badge-${normalizedStatus}`}>
+      {status}
+    </span>
+  );
 }

@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
 import { api } from "@/lib/axios";
 import { type AuthSession, useAuthStore } from "@/store/auth";
 
@@ -25,25 +26,13 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
-    <svg aria-hidden="true" fill="none" height="15" viewBox="0 0 24 24" width="15">
-      <path
-        d="M2.5 12C4.5 7.5 7.667 5.25 12 5.25C16.333 5.25 19.5 7.5 21.5 12C19.5 16.5 16.333 18.75 12 18.75C7.667 18.75 4.5 16.5 2.5 12Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
+    <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+      <path d="M2.5 12C4.5 7.5 7.667 5.25 12 5.25C16.333 5.25 19.5 7.5 21.5 12C19.5 16.5 16.333 18.75 12 18.75C7.667 18.75 4.5 16.5 2.5 12Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
       <path d="M12 15A3 3 0 1012 9a3 3 0 000 6Z" stroke="currentColor" strokeWidth="2" />
     </svg>
   ) : (
-    <svg aria-hidden="true" fill="none" height="15" viewBox="0 0 24 24" width="15">
-      <path
-        d="M3 3L21 21M10.6 10.6A2 2 0 0013.4 13.4M9.88 4.24A10.9 10.9 0 0112 4c5 0 8.5 4 9.5 8a11.8 11.8 0 01-3.13 5.13M6.11 6.11A12.4 12.4 0 002.5 12c1 4 4.5 8 9.5 8a10.9 10.9 0 004.11-.78"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
+    <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+      <path d="M3 3L21 21M10.6 10.6A2 2 0 0013.4 13.4M9.88 4.24A10.9 10.9 0 0112 4c5 0 8.5 4 9.5 8a11.8 11.8 0 01-3.13 5.13M6.11 6.11A12.4 12.4 0 002.5 12c1 4 4.5 8 9.5 8a10.9 10.9 0 004.11-.78" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
     </svg>
   );
 }
@@ -89,90 +78,88 @@ export function RegisterPage() {
   });
 
   return (
-    <main className="grid min-h-screen bg-[var(--bg-0)] lg:grid-cols-2">
-      <section className="hidden border-r border-[var(--border)] bg-[var(--bg-1)] lg:flex lg:items-center lg:justify-center">
-        <div className="text-center">
-          <p className="mono text-[48px] font-semibold text-[var(--accent)]">IF</p>
-          <p className="mt-2 text-sm text-[var(--text-2)]">InvoiceFlow</p>
-          <p className="mt-8 text-xs text-[var(--text-3)]">
-            Professional invoicing · Proposals · PDF export
-          </p>
-        </div>
-      </section>
-
-      <section className="flex items-center justify-center px-6 py-10">
-        <div className="page-enter w-full max-w-[360px]" key={location.pathname}>
-          <h1 className="text-xl font-semibold text-[var(--text-1)]">Create account</h1>
-          <p className="mb-6 mt-1 text-xs text-[var(--text-2)]">Start managing invoices in minutes</p>
-
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <div>
-              <label className="label" htmlFor="name">
-                Name
-              </label>
-              <input autoComplete="name" className="input" id="name" type="text" {...register("name")} />
-              {errors.name ? <p className="field-error">{errors.name.message}</p> : null}
-            </div>
-
-            <div>
-              <label className="label" htmlFor="email">
-                Email
-              </label>
-              <input autoComplete="email" className="input" id="email" type="email" {...register("email")} />
-              {errors.email ? <p className="field-error">{errors.email.message}</p> : null}
-            </div>
-
-            <div>
-              <label className="label" htmlFor="password">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  autoComplete="new-password"
-                  className="input pr-10"
-                  id="password"
-                  type={showPw ? "text" : "password"}
-                  {...register("password")}
-                />
-                <button
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] transition-colors hover:text-[var(--text-2)]"
-                  onClick={() => setShowPw((value) => !value)}
-                  type="button"
-                >
-                  <EyeIcon open={showPw} />
-                </button>
+    <main className="layout-container">
+      <section className="flex-col justify-center items-center w-full" style={{ display: 'flex', backgroundColor: 'var(--bg-base)', position: 'relative' }}>
+        <div className="tech-grid" style={{ position: 'absolute', inset: 0, opacity: 0.3, pointerEvents: 'none' }}></div>
+        <div className="page-enter technical-panel" style={{ width: '100%', maxWidth: '420px', padding: '48px 32px', borderRadius: '8px', position: 'relative', zIndex: 1, backgroundColor: 'rgba(17,17,17,0.8)', backdropFilter: 'blur(12px)' }} key={location.pathname}>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '24px', height: '24px', backgroundColor: 'var(--accent-primary)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary-text)', fontWeight: 700, fontSize: '12px' }}>
+                IF
               </div>
-              {errors.password ? <p className="field-error">{errors.password.message}</p> : null}
-            </div>
+              <span style={{ fontWeight: 600, fontSize: '16px', letterSpacing: '-0.01em' }}>InvoiceFlow</span>
+            </Link>
+          </div>
 
-            <div>
-              <label className="label" htmlFor="confirmPassword">
-                Confirm password
-              </label>
-              <input
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h1 className="text-h2 font-display" style={{ marginBottom: '8px', letterSpacing: '-0.02em', fontSize: '28px' }}>Initialize Account</h1>
+            <p className="text-body text-muted font-mono" style={{ fontSize: '13px' }}>Deploy your InvoiceFlow instance today.</p>
+          </div>
+
+          <form className="flex-col gap-4" style={{ display: 'flex' }} onSubmit={onSubmit}>
+            <Input
+              label="Name"
+              autoComplete="name"
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              error={errors.name?.message}
+              {...register("name")}
+            />
+
+            <Input
+              label="Email"
+              autoComplete="email"
+              id="email"
+              type="email"
+              placeholder="name@company.com"
+              error={errors.email?.message}
+              {...register("email")}
+            />
+
+            <div style={{ position: 'relative' }}>
+              <Input
+                label="Password"
                 autoComplete="new-password"
-                className="input"
-                id="confirmPassword"
+                id="password"
                 type={showPw ? "text" : "password"}
-                {...register("confirmPassword")}
+                placeholder="••••••••"
+                error={errors.password?.message}
+                {...register("password")}
+                style={{ paddingRight: '40px' }}
               />
-              {errors.confirmPassword ? (
-                <p className="field-error">{errors.confirmPassword.message}</p>
-              ) : null}
+              <button
+                aria-label={showPw ? "Hide password" : "Show password"}
+                style={{ position: 'absolute', right: '12px', top: '34px', color: 'var(--text-tertiary)', cursor: 'pointer' }}
+                onClick={() => setShowPw((value) => !value)}
+                type="button"
+              >
+                <EyeIcon open={showPw} />
+              </button>
             </div>
 
-            {formError ? <p className="pt-1 text-center text-xs text-[var(--red)]">{formError}</p> : null}
+            <Input
+              label="Confirm Password"
+              autoComplete="new-password"
+              id="confirmPassword"
+              type={showPw ? "text" : "password"}
+              placeholder="••••••••"
+              error={errors.confirmPassword?.message}
+              {...register("confirmPassword")}
+            />
 
-            <Button className="w-full" loading={isSubmitting} size="lg" type="submit">
-              Create account
+            {formError ? <div style={{ color: 'var(--error-text)', fontSize: '13px', textAlign: 'center' }}>{formError}</div> : null}
+
+            <Button className="w-full mt-2 font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '13px' }} loading={isSubmitting} size="lg" type="submit" variant="primary">
+              Deploy System
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-xs text-[var(--text-2)]">
+          <p className="mt-8 text-center text-body">
             Already have an account?{" "}
-            <Link className="text-[var(--accent)] hover:text-[#6278f8]" to="/login">
-              Sign in →
+            <Link className="font-mono" style={{ color: 'var(--accent-primary)', fontWeight: 500, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }} to="/login">
+              Authenticate
             </Link>
           </p>
         </div>

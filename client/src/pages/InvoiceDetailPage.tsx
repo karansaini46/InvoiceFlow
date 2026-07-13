@@ -4,75 +4,63 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Toast } from "@/components/Toast";
-import { TopLoadingBar, useLoadingBar } from "@/components/TopLoadingBar";
+import { Layout } from "@/components/Layout";
+import { Card } from "@/components/Card";
 import { useInvoiceAnalysis, usePaymentReminder } from "@/hooks/useAI";
 import { invoicesApi } from "@/lib/api/invoices";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import {
-  downloadBlobAsFile,
-  getInvoicePdfFilename,
-  openInvoiceInGmail,
-} from "@/lib/gmail";
-import { Page } from "@/pages/Page";
-import type { Invoice, InvoiceStatus } from "@/types/invoice";
+import { downloadBlobAsFile, getInvoicePdfFilename, openInvoiceInGmail } from "@/lib/gmail";
+import type { Invoice, InvoiceStatus, FollowUpRule } from "@/types/invoice";
 
 const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
 const formatCurrency = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en-US", {
-    currency,
-    style: "currency",
-  }).format(amount);
+  new Intl.NumberFormat("en-US", { currency, style: "currency" }).format(amount);
 
 function CopyIcon() {
   return (
     <svg aria-hidden="true" fill="none" height="15" viewBox="0 0 24 24" width="15">
-      <path
-        d="M9 9h10v10H9V9ZM5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
+      <path d="M9 9h10v10H9V9ZM5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
     </svg>
   );
 }
 
-function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`skeleton ${className}`} />;
-}
-
 function Timeline({ status }: { status: InvoiceStatus }) {
-  const steps = status === "OVERDUE" ? ["DRAFT", "SENT", "OVERDUE"] : ["DRAFT", "SENT", "PAID"];
+  const steps = status === "CANCELLED" ? ["DRAFT", "CANCELLED"] 
+              : status === "OVERDUE" ? ["DRAFT", "SENT", "OVERDUE"] 
+              : status === "SCHEDULED" ? ["DRAFT", "SCHEDULED", "SENT", "PAID"] 
+              : status === "VIEWED" ? ["DRAFT", "SENT", "VIEWED", "PAID"] 
+              : ["DRAFT", "SENT", "PAID"];
   const currentIndex = steps.indexOf(status);
 
   return (
-    <div className="flex items-start">
+    <div className="flex" style={{ width: '100%' }}>
       {steps.map((step, index) => {
         const completed = index < currentIndex;
         const current = index === currentIndex;
         const overdue = current && step === "OVERDUE";
 
         return (
-          <div className="flex flex-1 items-start" key={step}>
-            <div className="flex flex-col items-center">
+          <div key={step} className="flex" style={{ flex: 1, alignItems: 'center' }}>
+            <div className="flex-col items-center" style={{ display: 'flex' }}>
               <span
-                className="mono flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
                 style={{
-                  background: completed ? "var(--accent)" : current ? "var(--accent-dim)" : "var(--bg-2)",
-                  border: current
-                    ? `2px solid ${overdue ? "var(--red)" : "var(--accent)"}`
-                    : "1px solid transparent",
-                  color: completed ? "#fff" : overdue ? "var(--red)" : current ? "var(--accent)" : "var(--text-3)",
+                  width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%',
+                  fontSize: '12px', fontWeight: 600,
+                  backgroundColor: completed ? 'var(--accent-primary)' : current ? 'var(--bg-surface-elevated)' : 'var(--bg-base)',
+                  border: current ? `2px solid ${overdue ? 'var(--error-text)' : 'var(--accent-primary)'}` : '1px solid var(--border-strong)',
+                  color: completed ? 'var(--accent-primary-text)' : overdue ? 'var(--error-text)' : current ? 'var(--accent-primary)' : 'var(--text-tertiary)',
                 }}
               >
                 {index + 1}
               </span>
-              <span className="mt-2 text-[10px] uppercase tracking-wide text-[var(--text-3)]">
+              <span className="mt-2 text-small uppercase tracking-wider" style={{ color: current || completed ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: '10px' }}>
                 {step}
               </span>
             </div>
-            {index < steps.length - 1 ? <span className="mt-2.5 h-px flex-1 bg-[var(--border)]" /> : null}
+            {index < steps.length - 1 && (
+              <div style={{ flex: 1, height: '2px', backgroundColor: completed ? 'var(--accent-primary)' : 'var(--border-subtle)', margin: '0 16px', position: 'relative', top: '-10px' }} />
+            )}
           </div>
         );
       })}
@@ -92,26 +80,15 @@ export function InvoiceDetailPage() {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const [followUpRules, setFollowUpRules] = useState<FollowUpRule[]>([]);
+  const [followUpIsDefault, setFollowUpIsDefault] = useState(true);
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+
   const copiedTimer = useRef<number | null>(null);
   const downloadedTimer = useRef<number | null>(null);
-  const {
-    active: loadingBarActive,
-    complete: loadingBarComplete,
-    done: finishLoadingBar,
-    start: startLoadingBar,
-  } = useLoadingBar();
-  const {
-    analyze,
-    error: analysisError,
-    loading: analysisLoading,
-    result: analysis,
-  } = useInvoiceAnalysis();
-  const {
-    error: reminderError,
-    generate: generateReminder,
-    loading: reminderLoading,
-    reminder,
-  } = usePaymentReminder();
+  const { analyze, error: analysisError, loading: analysisLoading, result: analysis } = useInvoiceAnalysis();
+  const { error: reminderError, generate: generateReminder, loading: reminderLoading, reminder } = usePaymentReminder();
 
   useEffect(() => {
     if (!id) {
@@ -119,53 +96,32 @@ export function InvoiceDetailPage() {
       setLoading(false);
       return;
     }
-
     void loadInvoice(id);
   }, [id]);
 
   useEffect(() => {
-    if (!invoice) {
-      return;
-    }
-
-    void analyze(invoice.id).catch((err) => {
-      console.error("Error analyzing invoice:", err);
-    });
+    if (!invoice) return;
+    void analyze(invoice.id).catch(console.error);
   }, [analyze, invoice]);
-
-  useEffect(
-    () => () => {
-      if (copiedTimer.current !== null) {
-        window.clearTimeout(copiedTimer.current);
-      }
-      if (downloadedTimer.current !== null) {
-        window.clearTimeout(downloadedTimer.current);
-      }
-    },
-    [],
-  );
 
   const loadInvoice = async (invoiceId: string) => {
     try {
       setLoading(true);
-      startLoadingBar();
       const data = await invoicesApi.getById(invoiceId);
       setInvoice(data);
+      const followUpData = await invoicesApi.getFollowUpRules(invoiceId);
+      setFollowUpRules(followUpData.rules);
+      setFollowUpIsDefault(followUpData.isDefault);
       setError(null);
     } catch (err) {
       setError("Failed to load invoice");
-      console.error("Error loading invoice:", err);
     } finally {
       setLoading(false);
-      finishLoadingBar();
     }
   };
 
   const handleDownloadPdf = async () => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     try {
       setDownloadLoading(true);
       const blob = await invoicesApi.downloadPdf(invoice.id);
@@ -174,17 +130,13 @@ export function InvoiceDetailPage() {
       downloadedTimer.current = window.setTimeout(() => setDownloaded(false), 2000);
     } catch (err) {
       setError("Failed to download invoice PDF");
-      console.error("Error downloading invoice PDF:", err);
     } finally {
       setDownloadLoading(false);
     }
   };
 
   const handleOpenInGmail = async () => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     try {
       setGmailLoading(true);
       openInvoiceInGmail(invoice);
@@ -194,17 +146,13 @@ export function InvoiceDetailPage() {
       setError(null);
     } catch (error) {
       setError(getApiErrorMessage(error, "Failed to prepare invoice for Gmail"));
-      console.error("Error preparing invoice for Gmail:", error);
     } finally {
       setGmailLoading(false);
     }
   };
 
   const handleStatusUpdate = async (status: Extract<InvoiceStatus, "SENT" | "PAID">) => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     try {
       setStatusLoading(status);
       const updatedInvoice = await invoicesApi.updateStatus(invoice.id, status);
@@ -213,344 +161,254 @@ export function InvoiceDetailPage() {
       setError(null);
     } catch (error) {
       setError(getApiErrorMessage(error, `Failed to mark invoice as ${status.toLowerCase()}`));
-      console.error("Error updating invoice status:", error);
     } finally {
       setStatusLoading(null);
     }
   };
 
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const tagName = target?.tagName;
-
-      if (tagName === "INPUT" || tagName === "TEXTAREA" || target?.isContentEditable) {
-        return;
-      }
-
-      if (event.key.toLowerCase() === "e" && invoice) {
-        navigate(`/invoices/${invoice.id}/edit`);
-      }
-
-      if (event.key.toLowerCase() === "d") {
-        void handleDownloadPdf();
-      }
-
-      if (event.key.toLowerCase() === "s" && invoice?.status === "DRAFT") {
-        void handleOpenInGmail();
-      }
-
-      if (event.key === "Escape" || event.key === "Backspace") {
-        navigate("/invoices");
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  });
-
   const copyEmail = async () => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     await navigator.clipboard.writeText(invoice.clientEmail);
     setCopied(true);
-    if (copiedTimer.current !== null) {
-      window.clearTimeout(copiedTimer.current);
-    }
+    if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
     copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
   };
 
   const handleGenerateReminder = async () => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     try {
       await generateReminder(invoice.id);
       setToast("Reminder drafted.");
-      setError(null);
     } catch (err) {
-      console.error("Error generating payment reminder:", err);
+      console.error(err);
+    }
+  };
+
+  const handleUpdateFollowUpRule = async (index: number, field: keyof FollowUpRule, value: any) => {
+    if (!invoice) return;
+    try {
+      setFollowUpLoading(true);
+      const newRules = [...followUpRules];
+      newRules[index] = { ...newRules[index], [field]: value };
+      const payload = newRules.map(r => ({ offsetDays: r.offsetDays, enabled: r.enabled }));
+      const response = await invoicesApi.updateFollowUpRules(invoice.id, payload);
+      setFollowUpRules(response.rules);
+      setFollowUpIsDefault(response.isDefault);
+      setToast("Follow-up rules updated.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to update follow-up rules"));
+    } finally {
+      setFollowUpLoading(false);
+    }
+  };
+
+  const handleCancelFollowUps = async () => {
+    if (!invoice) return;
+    try {
+      setFollowUpLoading(true);
+      await invoicesApi.cancelFollowUps(invoice.id);
+      const followUpData = await invoicesApi.getFollowUpRules(invoice.id);
+      setFollowUpRules(followUpData.rules);
+      setFollowUpIsDefault(followUpData.isDefault);
+      setToast("All pending follow-ups cancelled.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to cancel follow-ups"));
+    } finally {
+      setFollowUpLoading(false);
     }
   };
 
   const pageTitle = useMemo(() => invoice?.number ?? "Invoice", [invoice]);
-  const isReminderAvailable =
-    invoice?.status === "OVERDUE" ||
-    (invoice?.status !== "PAID" && invoice ? new Date(invoice.dueDate) < new Date() : false);
+  const isReminderAvailable = invoice?.status === "OVERDUE" || (invoice?.status !== "PAID" && invoice ? new Date(invoice.dueDate) < new Date() : false);
 
   if (loading) {
     return (
-      <Page title="Invoice">
-        <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
-        <div className="space-y-4">
-          <div className="card space-y-4 p-5">
-            <SkeletonBlock className="h-4 w-32" />
-            <SkeletonBlock className="h-5 w-48" />
-            <SkeletonBlock className="h-24 w-full" />
-          </div>
-          <div className="card p-5">
-            <SkeletonBlock className="h-40 w-full" />
-          </div>
+      <Layout title="Invoice">
+        <div className="flex-col gap-6" style={{ display: 'flex' }}>
+          <Card style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>Loading...</Card>
         </div>
-      </Page>
+      </Layout>
     );
   }
 
   if (!invoice) {
     return (
-      <Page title="Invoice">
-        <div className="card error-state">⚠ {error ?? "Invoice not found"}</div>
-        <Button onClick={() => navigate("/invoices")} size="sm" variant="ghost">
-          ← Invoices
-        </Button>
-      </Page>
+      <Layout title="Invoice">
+        <div style={{ padding: '12px 16px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: 'var(--radius-md)' }}>
+          {error ?? "Invoice not found"}
+        </div>
+        <Button onClick={() => navigate("/invoices")} variant="ghost" className="mt-4">← Invoices</Button>
+      </Layout>
     );
   }
 
   return (
-    <Page title={pageTitle}>
-      <TopLoadingBar active={loadingBarActive} complete={loadingBarComplete} />
-      {toast ? <Toast message={toast} onDismiss={() => setToast(null)} /> : null}
+    <Layout title={pageTitle}>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {error && <div style={{ padding: '12px 16px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: 'var(--radius-md)', marginBottom: '24px' }}>{error}</div>}
 
-      {error ? <div className="card error-state">⚠ {error}</div> : null}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button onClick={() => navigate("/invoices")} size="sm" variant="ghost">
-          ← Invoices
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate(`/invoices/${invoice.id}/edit`)} size="sm" variant="secondary">
-            Edit
-          </Button>
-          {invoice.status === "DRAFT" ? (
-            <Button loading={gmailLoading} onClick={() => void handleOpenInGmail()} size="sm">
-              Open in Gmail
-            </Button>
-          ) : null}
-          {invoice.status === "DRAFT" ? (
-            <Button
-              loading={statusLoading === "SENT"}
-              onClick={() => void handleStatusUpdate("SENT")}
-              size="sm"
-              variant="secondary"
-            >
-              Mark as sent
-            </Button>
-          ) : null}
-          {invoice.status === "SENT" || invoice.status === "OVERDUE" ? (
-            <Button
-              loading={statusLoading === "PAID"}
-              onClick={() => void handleStatusUpdate("PAID")}
-              size="sm"
-              variant="secondary"
-            >
-              Mark as paid
-            </Button>
-          ) : null}
-          <Button loading={downloadLoading} onClick={() => void handleDownloadPdf()} size="sm" variant="secondary">
-            {downloadLoading ? "Preparing..." : downloaded ? "✓ Downloaded" : "Download PDF"}
+      <div className="flex justify-between items-center mb-8">
+        <Button onClick={() => navigate("/invoices")} variant="ghost" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>← Invoices</Button>
+        <div className="flex gap-4">
+          <Button onClick={() => navigate(`/invoices/${invoice.id}/edit`)} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</Button>
+          {invoice.status === "DRAFT" && <Button loading={gmailLoading} onClick={handleOpenInGmail} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open in Gmail</Button>}
+          {invoice.status === "DRAFT" && <Button loading={statusLoading === "SENT"} onClick={() => handleStatusUpdate("SENT")} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mark as sent</Button>}
+          {(invoice.status === "SENT" || invoice.status === "OVERDUE") && <Button loading={statusLoading === "PAID"} onClick={() => handleStatusUpdate("PAID")} variant="secondary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mark as paid</Button>}
+          <Button loading={downloadLoading} onClick={handleDownloadPdf} variant="primary" className="font-mono" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {downloadLoading ? "Preparing..." : downloaded ? "Downloaded" : "Download PDF"}
           </Button>
         </div>
       </div>
 
-      <section className="card p-4">
+      <Card className="mb-6">
         <Timeline status={invoice.status} />
-      </section>
+      </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
-        <section className="card p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex gap-6 mb-8" style={{ alignItems: 'flex-start' }}>
+        <Card style={{ flex: 1, padding: '40px' }}>
+          <div className="flex justify-between items-start mb-8 pb-8" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             <div>
-              <h2 className="text-[15px] font-semibold text-[var(--text-1)]">{invoice.clientName}</h2>
-              <div className="group mt-0.5 flex items-center gap-2">
-                <p className="mono text-[12px] text-[var(--text-2)]">{invoice.clientEmail}</p>
-                <button
-                  aria-label="Copy client email"
-                  className="relative text-[var(--text-3)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--text-2)]"
-                  onClick={() => void copyEmail()}
-                  type="button"
-                >
-                  <CopyIcon />
-                  {copied ? <span className="tooltip !opacity-100">Copied!</span> : null}
-                </button>
+              <h2 className="text-h2 font-display mb-2" style={{ fontSize: '28px' }}>{invoice.clientName}</h2>
+              <div className="flex items-center gap-2 text-small text-muted mb-2">
+                <span className="font-mono">{invoice.clientEmail}</span>
+                <button onClick={copyEmail} style={{ color: 'var(--text-tertiary)', cursor: 'pointer' }}><CopyIcon /></button>
+                {copied && <span style={{ color: 'var(--success-text)', fontSize: '11px' }}>Copied!</span>}
               </div>
-              <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[var(--text-2)]">
-                {invoice.clientAddress}
-              </p>
+              <p className="text-small whitespace-pre-line text-muted">{invoice.clientAddress}</p>
             </div>
-            <div className="text-left sm:text-right">
-              <StatusBadge status={invoice.status} />
-              <p className="mono mt-2 text-[12px] text-[var(--text-3)]">{invoice.number}</p>
+            <div className="text-right">
+              <div className="mb-2"><StatusBadge status={invoice.status} /></div>
+              <p className="font-mono text-small text-muted">{invoice.number}</p>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 border-t border-[var(--border)] pt-4 sm:grid-cols-3">
-            {[
-              ["Issue date", formatDate(invoice.issueDate)],
-              ["Due date", formatDate(invoice.dueDate)],
-              ["Currency", invoice.currency],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <p className="text-[11px] uppercase text-[var(--text-3)]">{label}</p>
-                <p className="mt-1 text-[13px] text-[var(--text-1)]">{value}</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Issue Date</div>
+              <div className="text-body">{formatDate(invoice.issueDate)}</div>
+            </div>
+            <div>
+              <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Due Date</div>
+              <div className="text-body">{formatDate(invoice.dueDate)}</div>
+            </div>
+            <div>
+              <div className="text-small font-medium text-muted uppercase tracking-wider mb-1">Currency</div>
+              <div className="text-body">{invoice.currency}</div>
+            </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-md border border-[var(--border)]">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th className="text-right">Qty</th>
-                  <th className="text-right">Unit Price</th>
-                  <th className="text-right">Amount</th>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr className="text-small font-medium text-muted uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border-strong)' }}>
+                <th className="pb-3">Description</th>
+                <th className="pb-3 text-right">Qty</th>
+                <th className="pb-3 text-right">Price</th>
+                <th className="pb-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.lineItems.map(item => (
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <td className="py-4 text-small">{item.description}</td>
+                  <td className="py-4 text-right font-mono text-small">{item.quantity}</td>
+                  <td className="py-4 text-right font-mono text-small">{formatCurrency(item.unitPrice, invoice.currency)}</td>
+                  <td className="py-4 text-right font-mono text-small font-medium">{formatCurrency(item.amount, invoice.currency)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {invoice.lineItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.description}</td>
-                    <td className="mono text-right">{item.quantity}</td>
-                    <td className="mono text-right">{formatCurrency(item.unitPrice, invoice.currency)}</td>
-                    <td className="mono text-right">{formatCurrency(item.amount, invoice.currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
 
-          {invoice.notes ? (
-            <div className="mt-5 border-t border-[var(--border)] pt-4">
-              <p className="text-[11px] uppercase text-[var(--text-3)]">Notes</p>
-              <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[var(--text-2)]">
-                {invoice.notes}
-              </p>
+          {invoice.notes && (
+            <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+              <h4 className="text-small font-medium text-muted uppercase tracking-wider mb-2">Notes</h4>
+              <p className="text-small whitespace-pre-line text-muted leading-relaxed">{invoice.notes}</p>
             </div>
-          ) : null}
-        </section>
+          )}
+        </Card>
 
-        <aside className="card self-start p-4 lg:sticky lg:top-24">
-          <h2 className="mb-3 text-[11px] uppercase tracking-wide text-[var(--text-2)]">Summary</h2>
-          <div className="space-y-3 text-[13px]">
+        <Card style={{ width: '380px', position: 'sticky', top: '88px', padding: '32px' }}>
+          <h3 className="text-h2 font-display mb-6" style={{ fontSize: '20px' }}>Summary</h3>
+          <div className="flex-col gap-4 text-small">
             <div className="flex justify-between">
-              <span className="text-[var(--text-2)]">Subtotal</span>
-              <span className="mono">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+              <span className="text-muted">Subtotal</span>
+              <span className="font-mono">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--text-2)]">Tax ({invoice.taxRate}%)</span>
-              <span className="mono">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
+              <span className="text-muted">Tax ({invoice.taxRate}%)</span>
+              <span className="font-mono">{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
             </div>
-            <div className="divider" />
-            <div className="flex justify-between font-semibold">
-              <span className="text-[var(--text-1)]">Total</span>
-              <span className="mono text-[16px] text-[var(--accent)]">
-                {formatCurrency(invoice.total, invoice.currency)}
-              </span>
+            <div className="my-2 border-b border-[var(--border-subtle)]" />
+            <div className="flex justify-between text-body font-medium">
+              <span>Total</span>
+              <span className="font-mono text-h3">{formatCurrency(invoice.total, invoice.currency)}</span>
             </div>
           </div>
-        </aside>
+        </Card>
       </div>
 
-      <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <article className="card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[11px] uppercase tracking-wide text-[var(--text-2)]">AI invoice analysis</h2>
-            {analysis ? (
-              <span
-                className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase"
-                style={{
-                  background:
-                    analysis.risk_level === "high"
-                      ? "var(--red-dim)"
-                      : analysis.risk_level === "medium"
-                        ? "var(--amber-dim)"
-                        : "var(--green-dim)",
-                  color:
-                    analysis.risk_level === "high"
-                      ? "var(--red)"
-                      : analysis.risk_level === "medium"
-                        ? "var(--amber)"
-                        : "var(--green)",
-                }}
-              >
-                {analysis.risk_level} risk
-              </span>
-            ) : null}
+      <div className="grid grid-cols-2 gap-8">
+        <Card style={{ padding: '32px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-h2 font-display" style={{ fontSize: '20px', margin: 0 }}>AI Analysis</h3>
+            {analysis && (
+               <span className="badge" style={{ backgroundColor: analysis.risk_level === 'high' ? 'var(--error-bg)' : analysis.risk_level === 'medium' ? 'var(--warning-bg)' : 'var(--success-bg)', color: analysis.risk_level === 'high' ? 'var(--error-text)' : analysis.risk_level === 'medium' ? 'var(--warning-text)' : 'var(--success-text)' }}>
+                 {analysis.risk_level} risk
+               </span>
+            )}
           </div>
-
           {analysisLoading ? (
-            <div className="mt-4 space-y-3">
-              <SkeletonBlock className="h-3 w-5/6" />
-              <SkeletonBlock className="h-3 w-3/4" />
-              <SkeletonBlock className="h-3 w-2/3" />
-            </div>
+            <div className="text-small text-muted">Analyzing invoice...</div>
           ) : analysis ? (
-            <>
-              <p className="mt-4 text-[13px] leading-6 text-[var(--text-1)]">{analysis.summary}</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-small leading-relaxed mb-4">{analysis.summary}</p>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[11px] uppercase text-[var(--text-3)]">Issues</p>
-                  <ul className="mt-2 space-y-2 text-[12px] text-[var(--text-2)]">
-                    {(analysis.issues.length ? analysis.issues : ["No obvious issues detected."]).map((issue) => (
-                      <li key={issue}>• {issue}</li>
-                    ))}
+                  <h4 className="text-[10px] font-medium text-muted uppercase tracking-wider mb-2">Issues</h4>
+                  <ul className="text-small text-muted flex-col gap-1" style={{ display: 'flex' }}>
+                    {(analysis.issues.length ? analysis.issues : ["No issues detected."]).map((issue, i) => <li key={i}>• {issue}</li>)}
                   </ul>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase text-[var(--text-3)]">Suggestions</p>
-                  <ul className="mt-2 space-y-2 text-[12px] text-[var(--text-2)]">
-                    {(analysis.suggestions.length ? analysis.suggestions : ["No action needed right now."]).map(
-                      (suggestion) => (
-                        <li key={suggestion}>• {suggestion}</li>
-                      ),
-                    )}
+                  <h4 className="text-[10px] font-medium text-muted uppercase tracking-wider mb-2">Suggestions</h4>
+                  <ul className="text-small text-muted flex-col gap-1" style={{ display: 'flex' }}>
+                    {(analysis.suggestions.length ? analysis.suggestions : ["No action needed."]).map((suggestion, i) => <li key={i}>• {suggestion}</li>)}
                   </ul>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            <p className="mt-4 text-[12px] text-[var(--text-2)]">
-              {analysisError ?? "AI analysis is not available yet."}
-            </p>
+            <div className="text-small text-muted">{analysisError ?? "Analysis unavailable."}</div>
           )}
-        </article>
+        </Card>
 
-        <article className="card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[11px] uppercase tracking-wide text-[var(--text-2)]">Payment reminder</h2>
-            {isReminderAvailable ? (
-              <Button loading={reminderLoading} onClick={() => void handleGenerateReminder()} size="sm" variant="secondary">
-                Generate
-              </Button>
-            ) : null}
+        <Card style={{ padding: '32px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-h2 font-display" style={{ fontSize: '20px', margin: 0 }}>Payment Reminder</h3>
+            {isReminderAvailable && (
+              <Button loading={reminderLoading} onClick={handleGenerateReminder} size="sm" variant="secondary">Generate Draft</Button>
+            )}
           </div>
-
           {!isReminderAvailable ? (
-            <p className="mt-4 text-[12px] text-[var(--text-2)]">Available once this invoice becomes overdue.</p>
+            <p className="text-small text-muted mt-2">Available once this invoice becomes overdue.</p>
           ) : reminder ? (
-            <div className="mt-4 space-y-3">
+            <div className="flex-col gap-4">
               <div>
-                <p className="text-[11px] uppercase text-[var(--text-3)]">Subject</p>
-                <p className="mt-1 text-[13px] text-[var(--text-1)]">{reminder.subject}</p>
+                <h4 className="text-[10px] font-medium text-muted uppercase tracking-wider mb-1">Subject</h4>
+                <p className="text-small font-medium">{reminder.subject}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase text-[var(--text-3)]">Body</p>
-                <p className="mt-1 whitespace-pre-line rounded-md border border-[var(--border)] bg-[var(--bg-2)] p-3 text-[12px] leading-6 text-[var(--text-2)]">
+                <h4 className="text-[10px] font-medium text-muted uppercase tracking-wider mb-1">Body</h4>
+                <p className="text-small whitespace-pre-line leading-relaxed text-muted bg-[var(--bg-surface-elevated)] p-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)]">
                   {reminder.body}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="mt-4 text-[12px] text-[var(--text-2)]">
-              {reminderError ?? "Generate a tailored reminder when you are ready to follow up."}
-            </p>
+            <p className="text-small text-muted mt-2">{reminderError ?? "Generate a tailored reminder to follow up."}</p>
           )}
-        </article>
-      </section>
-    </Page>
+        </Card>
+      </div>
+
+    </Layout>
   );
 }
