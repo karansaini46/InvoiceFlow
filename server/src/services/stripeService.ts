@@ -46,7 +46,15 @@ const getStripe = (): Stripe => {
  * Whether Stripe is configured (requires both secret key and webhook secret).
  */
 export const isStripeConfigured = (): boolean => {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  return Boolean(
+    secretKey && 
+    webhookSecret && 
+    !secretKey.includes("replace_me") && 
+    !webhookSecret.includes("replace_me")
+  );
 };
 
 /**

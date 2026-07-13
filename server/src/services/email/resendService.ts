@@ -70,7 +70,15 @@ const getFromEmail = (): string => {
  * Whether Resend is configured (API key and from email are set).
  */
 export const isResendConfigured = (): boolean => {
-  return Boolean(process.env.RESEND_API_KEY) && Boolean(process.env.RESEND_FROM_EMAIL);
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  
+  return Boolean(
+    apiKey && 
+    fromEmail && 
+    !apiKey.includes("replace_me") && 
+    !fromEmail.includes("replace_me")
+  );
 };
 
 /**
